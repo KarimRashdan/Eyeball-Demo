@@ -1,0 +1,21 @@
+#html, body {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    height: 100%;
+    width: 100%;
+}
+
+#eyeball-canvas {
+    display: block;
+    width: 100vw;
+    height: 100vh;
+}
+
+#ui-root {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    z-index: 10;
+    pointer-events: none;
+}
