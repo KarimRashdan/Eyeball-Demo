@@ -23,3 +23,13 @@ export function initRendering(canvas) {
     );
     camera.position.z = 5;
 }
+
+export function updateRendering(deltaTime, behaviourState) {
+    // safety check if something is not initialized
+    if (!renderer || !scene || !camera || !eyeball) return;
+    
+    // placeholder idle animation
+    eyeball.rotation.y += deltaTime * 0.01;
+
+    renderer.render(scene, camera);
+}
