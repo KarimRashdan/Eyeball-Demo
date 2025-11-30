@@ -24,6 +24,13 @@ export function initRendering(canvas) {
     camera.position.z = 5;
 }
 
+// placeholder eyeball logic
+eyeball = new THREE.Mesh(
+    new THREE.SphereGeometry(1, 32, 32),
+    new THREE.MeshBasicMaterial({ color: 0xffffff })
+);
+scene.add(eyeball);
+
 export function updateRendering(deltaTime, behaviourState) {
     // safety check if something is not initialized
     if (!renderer || !scene || !camera || !eyeball) return;
