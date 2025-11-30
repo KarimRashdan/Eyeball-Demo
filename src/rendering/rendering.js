@@ -25,15 +25,19 @@ export function initRendering(canvas) {
 
     // placeholder lousy eyeball
     const geometry = new THREE.SphereGeometry(1, 32, 32);
-    const material = new THREE.MeshBasicMaterial({ color: 0x0095dd });
+    const textureLoader = new THREE.TextureLoader();
+    const texture = textureLoader.load('https://threejs.org/examples/textures/uv_grid_opengl.jpg');
+    const material = new THREE.MeshStandardMaterial({ map: texture });
+
     eyeball = new THREE.Mesh(geometry, material);
     scene.add(eyeball);
 
     // lighting
     const light = new THREE.DirectionalLight(0xffffff, 1);
-    light.position.set(5, 5, 5).normalize();
+    light.position.set(0, 5, 5).normalize();
     scene.add(light);
 
+    // handle window resize
     window.addEventListener('resize', () => {
         camera.aspect = window.innerWidth / window.innerHeight;
         camera.updateProjectionMatrix();
