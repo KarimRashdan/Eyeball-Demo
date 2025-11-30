@@ -22,14 +22,18 @@ export function initRendering(canvas) {
         1000
     );
     camera.position.z = 5;
-}
 
-// placeholder eyeball logic
-eyeball = new THREE.Mesh(
-    new THREE.SphereGeometry(1, 32, 32),
-    new THREE.MeshBasicMaterial({ color: 0xffffff })
-);
-scene.add(eyeball);
+    // placeholder lousy eyeball
+    const geometry = new THREE.SphereGeometry(1, 32, 32);
+    const material = new THREE.MeshBasicMaterial({ color: 0x0095dd });
+    eyeball = new THREE.Mesh(geometry, material);
+    scene.add(eyeball);
+
+    // lighting
+    const light = new THREE.DirectionalLight(0xffffff, 1);
+    light.position.set(5, 5, 5).normalize();
+    scene.add(light);
+}
 
 export function updateRendering(deltaTime, behaviourState) {
     // safety check if something is not initialized
