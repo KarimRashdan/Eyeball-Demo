@@ -25,7 +25,7 @@ function setupVideoElement() {
 function startWebcamStream() {
     // prompts for permission to use webcam
     // https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia
-    navigator.mediaDevices
+    return navigator.mediaDevices
         // just set to True 
         .getUserMedia({ video: { facingMode: "user" } })
         .then((stream) => {
