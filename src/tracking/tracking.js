@@ -67,7 +67,38 @@ async function setupFaceDetector() {
 }
 
 function startTrackingLoop() {
+    // https://developer.mozilla.org/en-US/docs/Web/API/Window/requestAnimationFrame
+    async function processFrame(time) {
+        // process the current video frame
+        requestAnimationFrame(processFrame);
+        // safety checks
+        if (webcamError) {
+            return;
+        }
+        // safety
+        if (!trackingInit || !faceDetector || !webcamVideo) {
+            currentFaces = [];
+            return;
+        }
+        // safety
+        if (webcamVideo.readyState < 2) {
+            requestAnimationFrame(processFrame);
+            return;
+        }
 
+        // run face detection on current frame
+        const detectionResult = faceDetector.detectForVideo(webcamVideo, time);
+
+        // return an empty array if no faces detected
+        if (!detectionResult || !detectionResult.detections || detectionResult.detections.length === 0) {
+            currentFaces = [];
+            return;
+        }
+        
+        // convert detections to normalized coordinates
+        
+    }
+    requestAnimationFrame(processFrame);
 }
 
 // responsible for initializing everything needed for the tracking (i.e. enabling webcam, setting up mediapipe, etc.)
