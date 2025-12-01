@@ -1,3 +1,8 @@
+import {
+    FaceDetector,
+    FilesetResolver,
+} from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0";
+
 // code responsible for handline webcam, mediapipe, tracking state, finding faces
 
 let webcamVideo = null;    // webcam video element
@@ -29,11 +34,26 @@ function startWebcamStream() {
         .catch((err) => {
             console.error("Error accessing webcam: ", err);
             webcamError = true;
+            throw err;
         });
 }
 
-function setupFaceDetector() {
+async function setupFaceDetector() {
+    // https://ai.google.dev/edge/mediapipe/solutions/vision/face_detector/web_js
+    const vision = await FilesetResolver.forVisionTasks(
+    // path/to/wasm/root
+    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0/wasm"
+    );
 
+    faceDetector = await FaceDetector.createFromOptions(
+    vision,
+    {
+      baseOptions: {
+        modelAssetPath: "https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite",
+        delegate: "GPU",
+      },
+      runningMode: "VIDEO",
+    });
 }
 
 function startTrackingLoop() {
@@ -43,7 +63,13 @@ function startTrackingLoop() {
 // responsible for initializing everything needed for the tracking (i.e. enabling webcam, setting up mediapipe, etc.)
 export function initTracking() {
     setupVideoElement();
+
+    if (webcamError) {
+        return;
+    }
+
     startWebcamStream();
+    
     console.log("Tracking initialized");
 }
 
