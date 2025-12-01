@@ -82,12 +82,12 @@ function startTrackingLoop() {
         }
         // safety
         if (webcamVideo.readyState < 2) {
-            requestAnimationFrame(processFrame);
+            currentFaces = [];
             return;
         }
 
         // run face detection on current frame
-        const detectionResult = faceDetector.detectForVideo(webcamVideo, time);
+        const detectionResult = await faceDetector.detectForVideo(webcamVideo, time);
 
         // return an empty array if no faces detected
         if (!detectionResult || !detectionResult.detections || detectionResult.detections.length === 0) {
@@ -95,8 +95,21 @@ function startTrackingLoop() {
             return;
         }
         
-        // convert detections to normalized coordinates
-        
+        // convert detections to coordinates (normalize later)
+        // autcompleted by IntelliSense
+        const faces = detectionResult.detections.map((detection) => {
+            const box = detection.boundingBox;
+            return {
+                x: box.originX,
+                y: box.originY,
+                width: box.width,
+                height: box.height,
+            };
+        });
+
+        currentFaces = faces;
+        console.log("Detected faces: ", currentFaces);
+
     }
     requestAnimationFrame(processFrame);
 }
@@ -111,6 +124,10 @@ export function initTracking() {
 
     startWebcamStream()
         .then(() => setupFaceDetector())
+        .then(() => {
+            startTrackingLoop();
+            console.log("Tracking started");
+        })      
         .catch((err) => {
             console.error("Error initializing tracking: ", err);
             webcamError = true;
