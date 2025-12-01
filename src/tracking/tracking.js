@@ -88,6 +88,7 @@ function startTrackingLoop() {
 
         // run face detection on current frame
         const detectionResult = await faceDetector.detectForVideo(webcamVideo, time);
+        //console.log("xxxxxxxxxxxxetection result: ", detectionResult);
 
         // return an empty array if no faces detected
         if (!detectionResult || !detectionResult.detections || detectionResult.detections.length === 0) {
@@ -140,6 +141,9 @@ export function initTracking() {
 export function getTargets() {
     // returns an array of face targets, each target is an object with x and y properties (normalized coordinates between 0 and 1)
     // [{ x, y, width, height }]
-    // if webcamError return []
-    return [];
+    if (webcamError) {
+        return [];
+    }
+
+    return currentFaces;
 }
