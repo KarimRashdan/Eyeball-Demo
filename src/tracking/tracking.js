@@ -88,7 +88,7 @@ function startTrackingLoop() {
 
         // run face detection on current frame
         const detectionResult = await faceDetector.detectForVideo(webcamVideo, time);
-        //console.log("xxxxxxxxxxxxetection result: ", detectionResult);
+        //console.log("XXXXX: ", detectionResult);
 
         // return an empty array if no faces detected
         if (!detectionResult || !detectionResult.detections || detectionResult.detections.length === 0) {
