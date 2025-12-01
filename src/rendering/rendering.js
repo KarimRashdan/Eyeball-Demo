@@ -24,6 +24,7 @@ export function initRendering(canvas) {
     camera.position.z = 5;
 
     // placeholder lousy eyeball
+    // https://threejs.org/docs/
     const geometry = new THREE.SphereGeometry(1, 32, 32);
     const textureLoader = new THREE.TextureLoader();
     const texture = textureLoader.load('https://threejs.org/examples/textures/uv_grid_opengl.jpg');
@@ -38,6 +39,7 @@ export function initRendering(canvas) {
     scene.add(light);
 
     // handle window resize
+    // https://developer.mozilla.org/en-US/docs/Web/API/Window/resize_event
     window.addEventListener('resize', () => {
         camera.aspect = window.innerWidth / window.innerHeight;
         camera.updateProjectionMatrix();

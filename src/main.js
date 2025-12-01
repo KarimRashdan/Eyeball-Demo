@@ -6,6 +6,7 @@ import { initUI, updateUI } from "./ui/ui.js";
 let lastTime = 0;
 
 function mainLoop(currentTime) {
+    // https://developer.mozilla.org/en-US/docs/Games/Anatomy
     const deltaTime = currentTime - lastTime;
     lastTime = currentTime;
 
@@ -17,6 +18,7 @@ function mainLoop(currentTime) {
 }
 
 function startApp() {
+    // autocompleted by Java IntelliSense
     const canvas = document.getElementById("eyeball-canvas");
     const rootElement = document.getElementById("ui-root");
     initRendering(canvas);
