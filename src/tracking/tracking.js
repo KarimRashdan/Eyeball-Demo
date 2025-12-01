@@ -39,21 +39,31 @@ function startWebcamStream() {
 }
 
 async function setupFaceDetector() {
-    // https://ai.google.dev/edge/mediapipe/solutions/vision/face_detector/web_js
-    const vision = await FilesetResolver.forVisionTasks(
-    // path/to/wasm/root
-    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0/wasm"
-    );
+    try {
+        console.log("Setting up face detector...");
+        // https://ai.google.dev/edge/mediapipe/solutions/vision/face_detector/web_js
+        const vision = await FilesetResolver.forVisionTasks(
+            // path/to/wasm/root
+            "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0/wasm"
+        );
 
-    faceDetector = await FaceDetector.createFromOptions(
-    vision,
-    {
-      baseOptions: {
-        modelAssetPath: "https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite",
-        delegate: "GPU",
-      },
-      runningMode: "VIDEO",
-    });
+        faceDetector = await FaceDetector.createFromOptions(
+        vision,
+        {
+        baseOptions: {
+            modelAssetPath: "https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite",
+            delegate: "GPU",
+        },
+        runningMode: "VIDEO",
+        });
+
+        console.log("Face detector setup complete");
+        trackingInit = true;
+
+    } catch (error) {
+        console.error("Error setting up face detector: ", error);
+        webcamError = true;
+    }
 }
 
 function startTrackingLoop() {
@@ -68,8 +78,13 @@ export function initTracking() {
         return;
     }
 
-    startWebcamStream();
-    
+    startWebcamStream()
+        .then(() => setupFaceDetector())
+        .catch((err) => {
+            console.error("Error initializing tracking: ", err);
+            webcamError = true;
+        });
+
     console.log("Tracking initialized");
 }
 
