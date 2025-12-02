@@ -10,5 +10,11 @@ export function initUI(rootElement) {
 
 // updates the UI based on the behaviour state
 export function updateUI(behaviourState) {
-    // prompts e.g. make angry face
+    const root = document.getElementById("ui-root");
+    if (!root) return;
+
+    if (!behaviourState) {
+        root.textContent = "No behaviour state available";
+        return;
+    }
 }
