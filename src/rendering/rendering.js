@@ -50,9 +50,22 @@ export function initRendering(canvas) {
 export function updateRendering(deltaTime, behaviourState) {
     // safety check if something is not initialized
     if (!renderer || !scene || !camera || !eyeball) return;
-    
-    // placeholder idle animation
-    eyeball.rotation.y += deltaTime * 0.01;
+
+    // more safety, just render without changing rotation
+    if (!behaviourState || !behaviourState.targetCoords) {
+        renderer.render(scene, camera);
+        return;
+    }
+
+    const { x, y } = behaviourState.targetCoords;
+
+    // how far the eye is allowed to rotate (adjust later)
+    const MAX_YAW = 0.5;
+    const MAX_PITCH = 0.5;
+
+    // map gaze target to eyeball rotation
+    eyeball.rotation.y = -x * MAX_YAW;   // yaw (left/right)
+    eyeball.rotation.x = -y * MAX_PITCH; // pitch (up/down)
 
     renderer.render(scene, camera);
 }
