@@ -95,16 +95,24 @@ function startTrackingLoop() {
             currentFaces = [];
             return;
         }
+
+        const videoWidth = webcamVideo.videoWidth;
+        const videoHeight = webcamVideo.videoHeight;
+
+        if (!videoWidth || !videoHeight) {
+            currentFaces = [];
+            return;
+        }
         
-        // convert detections to coordinates (normalize later)
+        // convert detections to coordinates (normalized)
         // autcompleted by IntelliSense
         const faces = detectionResult.detections.map((detection) => {
             const box = detection.boundingBox;
             return {
-                x: box.originX,
-                y: box.originY,
-                width: box.width,
-                height: box.height,
+                x: box.originX / videoWidth,
+                y: box.originY / videoHeight,
+                width: box.width / videoWidth,
+                height: box.height / videoHeight,
             };
         });
 

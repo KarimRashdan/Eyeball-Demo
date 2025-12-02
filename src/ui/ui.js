@@ -17,4 +17,16 @@ export function updateUI(behaviourState) {
         root.textContent = "No behaviour state available";
         return;
     }
-}
+
+    const { mode, numFaces, targetCoords } = behaviourState;
+
+    // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number/toFixed
+    const tx = behaviourState.targetCoords.x.toFixed(2);
+    const ty = behaviourState.targetCoords.y.toFixed(2);
+
+    // Delete later
+    root.textContent =
+        `mode=${mode}\n` +
+        `numFaces=${numFaces}\n` +
+        `target=(${tx}, ${ty})`;
+    }
