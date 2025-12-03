@@ -41,6 +41,21 @@ function startTrackingLoop() {
 
         const faces = await detectFaces(video, time);
 
+        // create a fake second face for multi-target testing, just my face but shifted to the right
+        /*
+        let processedFaces = faces || [];
+        if (processedFaces.length === 1) {
+            const f = processedFaces[0];
+            const fakeFace = { 
+                ...f, 
+                x: Math.min(1, f.x + f.width * 1.5),
+             };
+        processedFaces = [f, fakeFace];
+        }
+
+        currentFaces = processedFaces;
+        */
+
         // get faces for current frame
         currentFaces = faces || [];
         // console.log("Detected faces: ", currentFaces);
