@@ -1,6 +1,8 @@
 import * as THREE from "https://unpkg.com/three@0.181.2/build/three.module.js";
 
 let scene, camera, renderer, eyeball;
+let currentGazeX = 0;
+let currentGazeY = 0;
 
 // https://developer.mozilla.org/en-US/docs/Games/Techniques/3D_on_the_web/Building_up_a_basic_demo_with_Three.js
 export function initRendering(canvas) {
@@ -59,13 +61,31 @@ export function updateRendering(deltaTime, behaviourState) {
 
     const { x, y } = behaviourState.targetCoords;
 
+    // https://lisyarus.github.io/blog/posts/exponential-smoothing.html
+    // convert deltaTime from ms to seconds
+    const deltaSeconds = deltaTime / 1000;
+
+    // how quickly the eye catches up to the target (per second)
+    const SMOOTHING_SPEED = 10.0;
+
+    // smoothing factor
+    const alpha = 1 - Math.exp(-SMOOTHING_SPEED * deltaSeconds);
+
+    // guard for weird deltaSeconds (first frame debug)
+    // FIX CENTERING ISSUE...
+    const lerpAmount = isNaN(alpha) ? 1.0 : alpha;
+
+    // make rendered gaze match ideal target (update)
+    currentGazeX += (x - currentGazeX) * lerpAmount;
+    currentGazeY += (y - currentGazeY) * lerpAmount;
+
     // how far the eye is allowed to rotate (adjust later)
     const MAX_YAW = 0.5;
     const MAX_PITCH = 0.5;
 
-    // map gaze target to eyeball rotation
-    eyeball.rotation.y = -x * MAX_YAW;   // yaw (left/right)
-    eyeball.rotation.x = -y * MAX_PITCH; // pitch (up/down)
+    // map rendered gaze target to eyeball rotation
+    eyeball.rotation.y = -currentGazeX * MAX_YAW;   // yaw (left/right)
+    eyeball.rotation.x = -currentGazeY * MAX_PITCH; // pitch (up/down)
 
     renderer.render(scene, camera);
 }
