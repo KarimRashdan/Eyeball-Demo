@@ -1,9 +1,16 @@
+import { updateIdleBehaviour } from "./idle.js";
+
 let behaviourState = {
     mode: "idle",                 // idle or tracking
     targetCoords: { x: 0, y: 0 }, // coordinates the eyeball wants to look at
     numFaces: 0,                  // number of faces detected in current frame
     emotion: "neutral",           // placeholder for emotional state
+    idleTarget: { x: 0, y: 0 },   // where to wander in idle mode
+    idleTimerFrames: 0,           // frames until next idle target change
 };
+
+// frames until new IDLE target, mess around with this when more progress
+const IDLE_TARGET_CHANGE_FRAMES = 60; // 60 = 1 second ar 60 fps
 
 // responsible for initializing eyeball's behavioural state
 export function initBehaviour() {
@@ -12,6 +19,8 @@ export function initBehaviour() {
         targetCoords: { x: 0, y: 0 },
         numFaces: 0,
         emotion: "neutral",
+        idleTarget: { x: 0, y: 0 },
+        idleTimerFrames: 0,
     };
     console.log("Behaviour initialized:", behaviourState);
 }
@@ -24,8 +33,7 @@ export function updateBehaviour(faces) {
     if (numFaces === 0) {
         behaviourState.mode = "idle";
         behaviourState.numFaces = 0;
-        behaviourState.targetCoords = { x: 0, y: 0 };
-        return behaviourState;
+        return updateIdleBehaviour(behaviourState);
     }
 
     // just pick first face in array, update later  
