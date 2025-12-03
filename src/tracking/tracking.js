@@ -3,7 +3,7 @@ import {
     FilesetResolver,
 } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0";
 
-// code responsible for handline webcam, mediapipe, tracking state, finding faces
+// code responsible for handline webcam, mediapipe, tracking state, finding faces -
 
 let webcamVideo = null;    // webcam video element
 let faceDetector = null;   // Mediapipe face detector
