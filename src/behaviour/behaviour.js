@@ -8,14 +8,16 @@ let behaviourState = {
     idleTarget: { x: 0, y: 0 },   // where to wander in idle mode
     idleTimerFrames: 0,           // frames until next idle target change
     noFaceFrames: 0,              // frames since last face detected
+    currentTargetIdx: -1,         // index of current target face being tracked
+    lockFrames: 0                 // frames to keep locked on current target face
 };
 
 // pretty self explanatory really
 let hadFaceLastFrame = false;
-// frames until new IDLE target, mess around with this when more progress
-const IDLE_TARGET_CHANGE_FRAMES = 60; // 60 = 1 second ar 60 fps
 // when target disappears don't instantly wander, wait
 const HOLD_GAZE_FRAMES = 30; // 30 = 0.5 seconds at 60 fps
+const MIN_LOCK_FRAMES = 300;  // drastically change these later
+const MAX_LOCK_FRAMES = 1200;
 
 
 // responsible for initializing eyeball's behavioural state
@@ -27,6 +29,8 @@ export function initBehaviour() {
         emotion: "neutral",
         idleTarget: { x: 0, y: 0 },
         idleTimerFrames: 0,
+        currentTargetIdx: -1,
+        lockFrames: 0,
     };
     hadFaceLastFrame = false;
     console.log("Behaviour initialized:", behaviourState);
@@ -43,6 +47,8 @@ export function updateBehaviour(faces) {
     // if the face has just been lost this frame
     if (numFaces === 0) {
         behaviourState.numFaces = 0;
+        behaviourState.currentTargetIdx = -1;
+        behaviourState.lockFrames = 0;
 
         if (hadFace) {
             behaviourState.mode = "idle";
@@ -75,8 +81,28 @@ export function updateBehaviour(faces) {
     behaviourState.numFaces = numFaces;
     behaviourState.noFaceFrames = 0; // reset no face counter
 
+    let targetIdx = behaviourState.currentTargetIdx;
+
+    // if no valid target yet, pick one
+    if (targetIdx < 0 || targetIdx >= numFaces) {
+        targetIdx = 0;                 // pick first face for now
+        behaviourState.lockFrames = 0; // reset lock timer
+    } else {
+        behaviourState.lockFrames += 1;
+    }
+
+    // simple logic for switching between targets, update later
+    if (behaviourState.lockFrames > MAX_LOCK_FRAMES && numFaces > 1) {
+        // just cycle to the next face for now
+        targetIdx = (targetIdx + 1) % numFaces;
+        behaviourState.lockFrames = 0;
+    }
+
+    // chosen target idx
+    behaviourState.currentTargetIdx = targetIdx;
+
     // just pick first face in array, update later  
-    const primaryFace = safeFaces[0];
+    const primaryFace = safeFaces[targetIdx];
 
     // face center in normalized video space
     const centerX = primaryFace.x + primaryFace.width / 2;
