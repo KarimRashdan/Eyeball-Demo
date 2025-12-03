@@ -7,10 +7,16 @@ let behaviourState = {
     emotion: "neutral",           // placeholder for emotional state
     idleTarget: { x: 0, y: 0 },   // where to wander in idle mode
     idleTimerFrames: 0,           // frames until next idle target change
+    noFaceFrames: 0,              // frames since last face detected
 };
 
+// pretty self explanatory really
+let hadFaceLastFrame = false;
 // frames until new IDLE target, mess around with this when more progress
 const IDLE_TARGET_CHANGE_FRAMES = 60; // 60 = 1 second ar 60 fps
+// when target disappears don't instantly wander, wait
+const HOLD_GAZE_FRAMES = 30; // 30 = 0.5 seconds at 60 fps
+
 
 // responsible for initializing eyeball's behavioural state
 export function initBehaviour() {
@@ -22,6 +28,7 @@ export function initBehaviour() {
         idleTarget: { x: 0, y: 0 },
         idleTimerFrames: 0,
     };
+    hadFaceLastFrame = false;
     console.log("Behaviour initialized:", behaviourState);
 }
 
@@ -30,11 +37,43 @@ export function updateBehaviour(faces) {
     const safeFaces = faces || [];
     const numFaces = safeFaces.length;
 
+    const hadFace = hadFaceLastFrame;
+    hadFaceLastFrame = numFaces > 0;
+
+    // if the face has just been lost this frame
     if (numFaces === 0) {
-        behaviourState.mode = "idle";
         behaviourState.numFaces = 0;
-        return updateIdleBehaviour(behaviourState);
+
+        if (hadFace) {
+            behaviourState.mode = "idle";
+            behaviourState.noFaceFrames = 0;
+
+            // freeze idleTarget at wherever the eyeballl was last looking
+            behaviourState.idleTarget = { ...behaviourState.targetCoords };
+            behaviourState.targetCoords = behaviourState.idleTarget;
+
+            return behaviourState;
+        }
+
+    // post disappearance settling period
+    if (behaviourState.noFaceFrames < HOLD_GAZE_FRAMES) {
+        behaviourState.noFaceFrames += 1;
+
+        // keep looking at last target
+        behaviourState.targetCoords = behaviourState.idleTarget;
+
+        return behaviourState;
     }
+
+    // basic idle mode
+    behaviourState.mode = "idle";
+    return updateIdleBehaviour(behaviourState);
+    }
+
+    // if faces are present
+    behaviourState.mode = "tracking";
+    behaviourState.numFaces = numFaces;
+    behaviourState.noFaceFrames = 0; // reset no face counter
 
     // just pick first face in array, update later  
     const primaryFace = safeFaces[0];
@@ -51,8 +90,6 @@ export function updateBehaviour(faces) {
     gazeX = Math.max(-1, Math.min(1, gazeX));
     gazeY = Math.max(-1, Math.min(1, gazeY));
 
-    behaviourState.mode = "tracking";
-    behaviourState.numFaces = numFaces;
     behaviourState.targetCoords = { x: gazeX, y: gazeY };
 
     return behaviourState
