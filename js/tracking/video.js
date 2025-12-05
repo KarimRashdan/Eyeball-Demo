@@ -12,20 +12,19 @@ export function setupVideoElement() {
     }
 }
 
-export function startWebcam() {
+export async function startWebcam() {
     // prompts for permission to use webcam
     // https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia
-    return navigator.mediaDevices
-        // just set to True 
-        .getUserMedia({ video: { facingMode: "user" } })
-        .then((stream) => {
-            webcamVideo.srcObject = stream;
-        })
-        .catch((err) => {
-            console.error("Error accessing webcam: ", err);
-            webcamError = true;
-            throw err;
-        });
+    try {
+        const stream = await navigator.mediaDevices
+            // just set to True 
+            .getUserMedia({ video: { facingMode: "user" } });
+        webcamVideo.srcObject = stream;
+    } catch (err) {
+        console.error("Error accessing webcam: ", err);
+        webcamError = true;
+        throw err;
+    }
 }
 
 export function getWebcamVideo() {
