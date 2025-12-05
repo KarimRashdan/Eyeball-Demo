@@ -29,6 +29,7 @@ export function initBehaviour() {
         emotion: "neutral",
         idleTarget: { x: 0, y: 0 },
         idleTimerFrames: 0,
+        noFaceFrames: 0,
         currentTargetIdx: -1,
         lockFrames: 0,
     };
@@ -37,9 +38,12 @@ export function initBehaviour() {
 }
 
 // updates the eyeball's emotional state, choose target, not entirely sure yet
-export function updateBehaviour(faces) {
+export function updateBehaviour(faces, emotionLabel) {
     const safeFaces = faces || [];
     const numFaces = safeFaces.length;
+
+    // keep behaviourState emotion synced up w detector
+    behaviourState.emotion = emotionLabel || "neutral";
 
     const hadFace = hadFaceLastFrame;
     hadFaceLastFrame = numFaces > 0;

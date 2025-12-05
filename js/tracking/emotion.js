@@ -41,6 +41,61 @@ export async function initEmotionDetector() {
 
 }
 
+// get the score for a given blendhspe name
+function getCoeff(blendshapes, name) {
+    const found = blendshapes.find((c) => c.categoryName === name);
+    return found ? found.score : 0;
+}
+
+// map blendshapes to emotion labels
+function classifyEmotion(blendshapes) {
+    // https://ai.google.dev/edge/mediapipe/solutions/vision/face_landmarker/web_js
+    const smileL = getCoeff(blendshapes, "mouthSmileLeft");
+    const smileR = getCoeff(blendshapes, "mouthSmileRight");
+    const cheekSquintL = getCoeff(blendshapes, "cheekSquintLeft");
+    const cheekSquintR = getCoeff(blendshapes, "cheekSquintRight");
+    const mouthOpen = getCoeff(blendshapes, "jawOpen");
+    const eyeWideL = getCoeff(blendshapes, "eyeWideLeft");
+    const eyeWideR = getCoeff(blendshapes, "eyeWideRight");
+    const browDownL = getCoeff(blendshapes, "browDownLeft");
+    const browDownR = getCoeff(blendshapes, "browDownRight");
+    const browUpL = getCoeff(blendshapes, "browOuterUpLeft");
+    const browUpR = getCoeff(blendshapes, "browOuterUpRight");
+    const noseSneerL = getCoeff(blendshapes, "noseSneerLeft");
+    const noseSneerR = getCoeff(blendshapes, "noseSneerRight");
+    const frownL = getCoeff(blendshapes, "mouthFrownLeft");
+    const frownR = getCoeff(blendshapes, "mouthFrownRight");
+
+    // UPDATE THESE AND ADD NEW ONES LATER
+    const happyScore = (smileL + smileR) * 0.6 + (cheekSquintL + cheekSquintR) * 0.4;
+    const surprisedScore = (eyeWideL + eyeWideR) * 0.3 + mouthOpen * 0.5 + (browUpL + browUpR) * 0.2;
+    const angryScore = (browDownL + browDownR) * 0.5 + (noseSneerL + noseSneerR) * 0.5;
+    const sadScore = (frownL + frownR) * 0.6 + (browDownL + browDownR) * 0.4;
+
+    const emotions = [
+        { label: "happy", score: happyScore },
+        { label: "surprised", score: surprisedScore },
+        { label: "angry", score: angryScore },
+        { label: "sad", score: sadScore },
+    ];
+
+    // pick best scoring emotion
+    let best = { label: "neutral", score: 0 };
+    for (const emotion of emotions) {
+        if (emotion.score > best.score) best = emotion;
+    }
+
+    // ADJUST AFTER TESTING
+    const THRESHOLD = 0.2;
+    if (best.score < THRESHOLD) {
+        return "neutral";
+    }
+
+    return best.label;
+
+}
+
+
 export function updateEmotion(videoElement, time) {
     if (!faceLandmarkerInstance || !videoElement) return null;
 
@@ -55,7 +110,7 @@ export function updateEmotion(videoElement, time) {
     if (!result || !result.faceBlendshapes || result.faceBlendshapes.length === 0) {
         // neutral emotion placeholder
         lastEmotion = {
-            emotion: "neutral",
+            label: "neutral",
             blendshapes: [],
         };
         return lastEmotion;
@@ -67,8 +122,10 @@ export function updateEmotion(videoElement, time) {
     // raw blendshape values
     console.log("Blendshapes:", blendshapes);
 
+    const label = classifyEmotion(blendshapes);
+
     lastEmotion = {
-        label: "neutral",
+        label,
         blendshapes,
     };
 

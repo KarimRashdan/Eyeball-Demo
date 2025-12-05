@@ -12,12 +12,17 @@ function mainLoop(currentTime) {
     lastTime = currentTime;
 
     const faces = getTargets(); // get tracking targets
+
+    let emotionLabel = "neutral";
     const video = document.getElementById("webcamVideo");
     if (video && video.readyState >= 2) {
-        updateEmotion(video, currentTime); // update emotion detection
+        const emotionState = updateEmotion(video, currentTime); // update emotion detection
+        if (emotionState && emotionState.label) {
+            emotionLabel = emotionState.label;
+        }
     }
 
-    const behaviourState = updateBehaviour(faces); // update behaviour based on emotions on face(s)
+    const behaviourState = updateBehaviour(faces, emotionLabel); // update behaviour based on emotions on face(s)
     updateRendering(deltaTime, behaviourState); // update rendering based on behaviour state
     updateUI(behaviourState); // update UI based on behaviour state
 

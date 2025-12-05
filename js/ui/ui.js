@@ -4,6 +4,7 @@ let root = null;
 export function initUI(rootElement) {
     root = rootElement;
     if (root) {
+        root.style.whiteSpace = "pre";
         root.textContent = "UI initialized";
     }
 }
@@ -18,7 +19,7 @@ export function updateUI(behaviourState) {
         return;
     }
 
-    const { mode, numFaces, targetCoords } = behaviourState;
+    const { mode, numFaces, targetCoords, emotion } = behaviourState;
 
     // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number/toFixed
     const tx = behaviourState.targetCoords.x.toFixed(2);
@@ -28,5 +29,6 @@ export function updateUI(behaviourState) {
     root.textContent =
         `mode=${mode}\n` +
         `numFaces=${numFaces}\n` +
-        `target=(${tx}, ${ty})`;
-    }
+        `target=(${tx}, ${ty})\n` +
+        `emotion=${emotion}`;
+}
