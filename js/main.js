@@ -15,10 +15,15 @@ function mainLoop(currentTime) {
 
     let emotionLabel = "neutral";
     const video = document.getElementById("webcamVideo");
+
     if (video && video.readyState >= 2) {
-        const emotionState = updateEmotion(video, currentTime); // update emotion detection
-        if (emotionState && emotionState.label) {
-            emotionLabel = emotionState.label;
+        try {
+            const emotionState = updateEmotion(video, currentTime); // update emotion detection
+            if (emotionState && emotionState.label) {
+                emotionLabel = emotionState.label;
+            }
+        } catch (error) {
+            console.error("Error updating emotion:", error);
         }
     }
 

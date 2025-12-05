@@ -86,7 +86,7 @@ function classifyEmotion(blendshapes) {
     }
 
     // ADJUST AFTER TESTING
-    const THRESHOLD = 0.2;
+    const THRESHOLD = 0.4;
     if (best.score < THRESHOLD) {
         return "neutral";
     }
