@@ -31,7 +31,7 @@ export async function detectFaces(videoElement, time) {
     if (!faceDetector || !videoElement) return [];
 
     // run face detection on current frame
-    const detectionResult = faceDetector.detectForVideo(webcamVideo, time);
+    const detectionResult = faceDetector.detectForVideo(videoElement, time);
     //console.log("XXXXX: ", detectionResult);
 
     // return an empty array if no faces detected
@@ -39,8 +39,8 @@ export async function detectFaces(videoElement, time) {
         return [];
     }
 
-    const videoWidth = webcamVideo.videoWidth;
-    const videoHeight = webcamVideo.videoHeight;
+    const videoWidth = videoElement.videoWidth;
+    const videoHeight = videoElement.videoHeight;
 
     if (!videoWidth || !videoHeight) {
         return [];
