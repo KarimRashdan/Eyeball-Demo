@@ -1,22 +1,21 @@
 import {
-    faceLandmarker,
+    FaceLandmarker,
     FilesetResolver,
 } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0";
 
-let faceLandmarker = null;
+let faceLandmarkerInstance = null;
 let lastEmotion = null;
-const vision = null;
 
 const EMOTION_MODEL_PATH = "/models/face_landmarker.task";
 
 // check if ready
 export function emotionDetectorReady() {
-    return !!faceLandmarker;
+    return !!faceLandmarkerInstance;
 }
 
 // initialize emotion detector
 export async function initEmotionDetector() {
-    if (faceLandmarker) return; // already initialized
+    if (faceLandmarkerInstance) return; // already initialized
 
     // https://ai.google.dev/edge/mediapipe/solutions/vision/face_landmarker/web_js
     const vision = await FilesetResolver.forVisionTasks(
@@ -24,7 +23,7 @@ export async function initEmotionDetector() {
     );
 
     // create landmarker instance
-    faceLandmarker = await faceLandmarker.createFromOptions(
+    faceLandmarkerInstance = await FaceLandmarker.createFromOptions(
         vision, 
         {
             baseOptions: {
@@ -43,11 +42,15 @@ export async function initEmotionDetector() {
 }
 
 export function updateEmotion(videoElement, time) {
-    if (!faceLandmarker) return null;
+    if (!faceLandmarkerInstance || !videoElement) return null;
+
+    if (videoElement.readyState < 2 || videoElement.videoWidth === 0 || videoElement.videoHeight === 0) {
+        return lastEmotion;
+    }
 
     // call landmarker on current video frame
     // https://www.youtube.com/watch?v=NiK5wHce03Y
-    const result = faceLandmarker.detectForVideo(videoElement, time);
+    const result = faceLandmarkerInstance.detectForVideo(videoElement, time);
 
     if (!result || !result.faceBlendshapes || result.faceBlendshapes.length === 0) {
         // neutral emotion placeholder
@@ -71,6 +74,7 @@ export function updateEmotion(videoElement, time) {
 
     return lastEmotion;
 }
+
 export function getCurrentEmotion() {
     return lastEmotion;
 }
