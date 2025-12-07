@@ -4,6 +4,17 @@ let scene, camera, renderer, eyeball;
 let currentGazeX = 0;
 let currentGazeY = 0;
 
+
+// smoothed emotion parameters
+let currentPupilScale = 1.0;
+let currentEyeOpen = 1.0;
+let currentJitterStrength = 0.0;
+let jitterTime = 0; // twitchy ahh emotion
+
+function clamp(value, min, max) {
+    return Math.max(min, Math.min(max, value));
+}
+
 // https://developer.mozilla.org/en-US/docs/Games/Techniques/3D_on_the_web/Building_up_a_basic_demo_with_Three.js
 export function initRendering(canvas) {
 
@@ -75,6 +86,17 @@ export function updateRendering(deltaTime, behaviourState) {
     // FIX CENTERING ISSUE...
     const lerpAmount = isNaN(alpha) ? 1.0 : alpha;
 
+    const targetPupilScale = behaviourState.pupilScale ?? 1.0;
+    const targetEyeOpen = behaviourState.eyeOpen ?? 1.0;
+    const targetJitterStrength = behaviourState.jitterStrength ?? 0.0;
+
+    currentPupilScale += (targetPupilScale - currentPupilScale) * lerpAmount;
+    currentEyeOpen += (targetEyeOpen - currentEyeOpen) * lerpAmount;
+    currentJitterStrength += (targetJitterStrength - currentJitterStrength) * lerpAmount;
+
+    // advance time for jitter
+    jitterTime += deltaSeconds;
+
     // make rendered gaze match ideal target (update)
     currentGazeX += (x - currentGazeX) * lerpAmount;
     currentGazeY += (y - currentGazeY) * lerpAmount;
@@ -83,9 +105,36 @@ export function updateRendering(deltaTime, behaviourState) {
     const MAX_YAW = 0.5;
     const MAX_PITCH = 0.5;
 
-    // map rendered gaze target to eyeball rotation
-    eyeball.rotation.y = -currentGazeX * MAX_YAW;   // yaw (left/right)
-    eyeball.rotation.x = -currentGazeY * MAX_PITCH; // pitch (up/down)
+    // twitch bsed on emotion
+    let jitterYaw = 0;
+    let jitterPitch = 0;
+
+    if (currentJitterStrength > 0.001) {
+        const JITTER_BASE = 0.03; // max jitter angle
+        const JITTER_SPEED_YAW = 35 ;   // speed of yaw jitter
+        const JITTER_SPEED_PITCH = 30;  // speed of pitch jitter
+
+        jitterYaw = Math.sin(jitterTime * JITTER_SPEED_YAW) * JITTER_BASE * currentJitterStrength;
+        jitterPitch = Math.cos(jitterTime * JITTER_SPEED_PITCH) * JITTER_BASE * currentJitterStrength;
+    }
+
+    const yaw = -currentGazeX * MAX_YAW + jitterYaw;
+    const pitch = -currentGazeY * MAX_PITCH + jitterPitch;
+
+    // apply gaze rotation w/ jitter
+    eyeball.rotation.y = yaw;   // yaw (left/right)
+    eyeball.rotation.x = pitch; // pitch (up/down)
+
+    // fake, placeholder behaviour until you get the actual model
+    const BASE_SCALE = 1.0;
+
+    const safePupil = clamp(currentPupilScale, 0.7, 1.5);
+    const safeEyeOpen = clamp(currentEyeOpen, 0.7, 1.4); 
+
+    const scaleX = BASE_SCALE * safePupil;
+    const scaleY = BASE_SCALE * safePupil * safeEyeOpen;
+    const scaleZ = BASE_SCALE * safePupil;
+    eyeball.scale.set(scaleX, scaleY, scaleZ);
 
     renderer.render(scene, camera);
 }
