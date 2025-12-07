@@ -9,8 +9,28 @@ let behaviourState = {
     idleTimerFrames: 0,           // frames until next idle target change
     noFaceFrames: 0,              // frames since last face detected
     currentTargetIdx: -1,         // index of current target face being tracked
-    lockFrames: 0                 // frames to keep locked on current target face
+    lockFrames: 0,                // frames to keep locked on current target face
+    pupilScale: 1.0,              // scale of the pupil based on emotion
+    eyeOpen: 1.0,                 // how open the eye is based on emotion
+    jitterStrength: 0.0,          // amount of jitter to apply based on emotion
 };
+
+const EMOTION_PRESETS = {
+    neutral:  { pupilScale: 1.0, eyeOpen: 1.0, jitterStrength: 0.0 },
+    happy:    { pupilScale: 1.3, eyeOpen: 1.0, jitterStrength: 0.1 },
+    sad:      { pupilScale: 0.9, eyeOpen: 0.7, jitterStrength: 0.0 },
+    angry:    { pupilScale: 0.8, eyeOpen: 0.9, jitterStrength: 0.5 },
+    surprised:{ pupilScale: 1.5, eyeOpen: 1.3, jitterStrength: 0.2 },
+}
+
+function applyEmotionPreset(state) {
+    const label = state.emotion || "neutral";
+    const preset = EMOTION_PRESETS[label] || EMOTION_PRESETS.neutral;
+
+    state.pupilScale = preset.pupilScale;
+    state.eyeOpen = preset.eyeOpen;
+    state.jitterStrength = preset.jitterStrength;
+}
 
 // pretty self explanatory really
 let hadFaceLastFrame = false;
@@ -65,19 +85,24 @@ export function updateBehaviour(faces, emotionLabel) {
             return behaviourState;
         }
 
-    // post disappearance settling period
-    if (behaviourState.noFaceFrames < HOLD_GAZE_FRAMES) {
-        behaviourState.noFaceFrames += 1;
+        // post disappearance settling period
+        if (behaviourState.noFaceFrames < HOLD_GAZE_FRAMES) {
+            behaviourState.noFaceFrames += 1;
 
-        // keep looking at last target
-        behaviourState.targetCoords = behaviourState.idleTarget;
+            // keep looking at last target
+            behaviourState.targetCoords = behaviourState.idleTarget;
 
-        return behaviourState;
-    }
+            // apply emotion
+            applyEmotionPreset(behaviourState);
 
-    // basic idle mode
-    behaviourState.mode = "idle";
-    return updateIdleBehaviour(behaviourState);
+            return behaviourState;
+        }
+
+        // basic idle mode
+        behaviourState.mode = "idle";
+        const updatedIdle = updateIdleBehaviour(behaviourState);
+        applyEmotionPreset(updatedIdle);
+        return updatedIdle;
     }
 
     // if faces are present
@@ -121,6 +146,7 @@ export function updateBehaviour(faces, emotionLabel) {
     gazeY = Math.max(-1, Math.min(1, gazeY));
 
     behaviourState.targetCoords = { x: gazeX, y: gazeY };
+    applyEmotionPreset(behaviourState);
 
     return behaviourState
 }

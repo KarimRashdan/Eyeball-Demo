@@ -19,7 +19,7 @@ export function updateUI(behaviourState) {
         return;
     }
 
-    const { mode, numFaces, targetCoords, emotion } = behaviourState;
+    const { mode, numFaces, targetCoords, emotion, pupilScale, eyeOpen, jitterStrength } = behaviourState;
 
     // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number/toFixed
     const tx = behaviourState.targetCoords.x.toFixed(2);
@@ -30,5 +30,8 @@ export function updateUI(behaviourState) {
         `mode=${mode}\n` +
         `numFaces=${numFaces}\n` +
         `target=(${tx}, ${ty})\n` +
-        `emotion=${emotion}`;
+        `emotion=${emotion}\n` +
+        `pupilScale=${pupilScale.toFixed(2)}\n` +
+        `eyeOpen=${eyeOpen.toFixed(2)}\n` +
+        `jitterStrength=${jitterStrength.toFixed(2)}`;
 }
