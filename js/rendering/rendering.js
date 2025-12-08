@@ -12,12 +12,16 @@ let scleraMesh = null;
 let currentGazeX = 0;
 let currentGazeY = 0;
 
-
 // smoothed emotion parameters
 let currentPupilScale = 1.0;
 let currentEyeOpen = 1.0;
 let currentJitterStrength = 0.0;
 let jitterTime = 0; // twitchy ahh emotion
+
+// eyeball transform defaults
+const EYE_START_POS = new THREE.Vector3(0, 0, 0);         // x y z
+const EYE_START_SCALE = new THREE.Vector3(1.0, 1.0, 1.0); // uniform scale
+const EYE_START_ROT = new THREE.Euler(0, 0, 0);           // radians
 
 function clamp(value, min, max) {
     return Math.max(min, Math.min(max, value));
@@ -69,9 +73,9 @@ export function initRendering(canvas) {
         eyeballRoot = gltf.scene;
 
         // positioning
-        eyeballRoot.position.set(0, 0, 0);
-        eyeballRoot.scale.set(1, 1, 1);
-        eyeballRoot.rotation.set(0, 0, 0);
+        eyeballRoot.position.copy(EYE_START_POS);
+        eyeballRoot.scale.copy(EYE_START_SCALE);
+        eyeballRoot.rotation.copy(EYE_START_ROT);
 
         scene.add(eyeballRoot);
 
