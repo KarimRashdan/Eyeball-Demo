@@ -1,4 +1,5 @@
 import * as THREE from "https://unpkg.com/three@0.181.2/build/three.module.js";
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 
 let scene, camera, renderer, eyeball;
 let currentGazeX = 0;
@@ -50,6 +51,25 @@ export function initRendering(canvas) {
     const light = new THREE.DirectionalLight(0xffffff, 1);
     light.position.set(0, 5, 5).normalize();
     scene.add(light);
+
+    // first eyeball model
+    // https://threejs.org/docs/#GLTFLoader
+    const gltfLoader = new GLTFLoader();
+    gltfLoader.load("assets/blue_eyeball_free/scene.gltf", (gltf) => {
+        const model = gltf.scene;
+
+        // positioning
+        model.position.set(0, 0, 0);
+        model.scale.set(1, 1, 1);
+
+        scene.add(model);
+
+        console.log("Base eyeball loaded:", model);
+    },
+    undefined,
+    (error) => {
+        console.error("Error loading base eyeball model:", error);
+    });
 
     // handle window resize
     // https://developer.mozilla.org/en-US/docs/Web/API/Window/resize_event

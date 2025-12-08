@@ -22,6 +22,15 @@
     <!-- https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement/autoplay -->
     <video id="webcamVideo" autoplay playsinline muted></video>
 
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.181.2/build/three.module.js",
+            "three/examples/jsm/": "https://unpkg.com/three@0.181.2/examples/jsm/"
+        }
+    }
+    </script>
+
     <script type="module" src="js/main.js"></script>
 </body>
 </html>
