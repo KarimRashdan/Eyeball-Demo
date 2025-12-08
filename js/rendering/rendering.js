@@ -1,7 +1,14 @@
 import * as THREE from "https://unpkg.com/three@0.181.2/build/three.module.js";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 
-let scene, camera, renderer, eyeball;
+let scene, camera, renderer;
+// root node of glTF eyeball model
+let eyeballRoot = null;
+
+// for the other models, later
+let irisMesh = null;
+let scleraMesh = null;
+
 let currentGazeX = 0;
 let currentGazeY = 0;
 
@@ -39,6 +46,7 @@ export function initRendering(canvas) {
 
     // placeholder lousy eyeball
     // https://threejs.org/docs/
+    /* --------------------------------------------------------------
     const geometry = new THREE.SphereGeometry(1, 32, 32);
     const textureLoader = new THREE.TextureLoader();
     const texture = textureLoader.load('https://threejs.org/examples/textures/uv_grid_opengl.jpg');
@@ -46,25 +54,28 @@ export function initRendering(canvas) {
 
     eyeball = new THREE.Mesh(geometry, material);
     scene.add(eyeball);
+    -------------------------------------------------------------- */
 
     // lighting
     const light = new THREE.DirectionalLight(0xffffff, 1);
-    light.position.set(0, 5, 5).normalize();
+    light.position.set(0, 0, 5).normalize();
     scene.add(light);
 
     // first eyeball model
-    // https://threejs.org/docs/#GLTFLoader
+    // https://threejs.org/docs/#GLTFLoader, https://discoverthreejs.com/book/first-steps/load-models/#:~:text=To%20load%20glTF%20files%2C%20first,this%20file%20in%20the%20editor.
     const gltfLoader = new GLTFLoader();
     gltfLoader.load("assets/blue_eyeball_free/scene.gltf", (gltf) => {
-        const model = gltf.scene;
+        // root of eyeball
+        eyeballRoot = gltf.scene;
 
         // positioning
-        model.position.set(0, 0, 0);
-        model.scale.set(1, 1, 1);
+        eyeballRoot.position.set(0, 0, 0);
+        eyeballRoot.scale.set(1, 1, 1);
+        eyeballRoot.rotation.set(0, 0, 0);
 
-        scene.add(model);
+        scene.add(eyeballRoot);
 
-        console.log("Base eyeball loaded:", model);
+        console.log("Base eyeball loaded:", eyeballRoot);
     },
     undefined,
     (error) => {
@@ -82,8 +93,13 @@ export function initRendering(canvas) {
 
 export function updateRendering(deltaTime, behaviourState) {
     // safety check if something is not initialized
-    if (!renderer || !scene || !camera || !eyeball) return;
+    if (!renderer || !scene || !camera) return;
 
+    // eyeball not loaded yet
+    if (!eyeballRoot) {
+        renderer.render(scene, camera);
+        return;
+    }
     // more safety, just render without changing rotation
     if (!behaviourState || !behaviourState.targetCoords) {
         renderer.render(scene, camera);
@@ -122,8 +138,8 @@ export function updateRendering(deltaTime, behaviourState) {
     currentGazeY += (y - currentGazeY) * lerpAmount;
 
     // how far the eye is allowed to rotate (adjust later)
-    const MAX_YAW = 0.5;
-    const MAX_PITCH = 0.5;
+    const MAX_YAW = 0.14;
+    const MAX_PITCH = 0.14;
 
     // twitch bsed on emotion
     let jitterYaw = 0;
@@ -142,19 +158,22 @@ export function updateRendering(deltaTime, behaviourState) {
     const pitch = -currentGazeY * MAX_PITCH + jitterPitch;
 
     // apply gaze rotation w/ jitter
-    eyeball.rotation.y = yaw;   // yaw (left/right)
-    eyeball.rotation.x = pitch; // pitch (up/down)
+    eyeballRoot.rotation.y = yaw;   // yaw (left/right)
+    eyeballRoot.rotation.x = pitch; // pitch (up/down)
 
     // fake, placeholder behaviour until you get the actual model
     const BASE_SCALE = 1.0;
 
     const safePupil = clamp(currentPupilScale, 0.7, 1.5);
     const safeEyeOpen = clamp(currentEyeOpen, 0.7, 1.4); 
-
+    /*
     const scaleX = BASE_SCALE * safePupil;
     const scaleY = BASE_SCALE * safePupil * safeEyeOpen;
     const scaleZ = BASE_SCALE * safePupil;
     eyeball.scale.set(scaleX, scaleY, scaleZ);
+    */
+
+    eyeballRoot.scale.set(BASE_SCALE, BASE_SCALE, BASE_SCALE);
 
     renderer.render(scene, camera);
 }
