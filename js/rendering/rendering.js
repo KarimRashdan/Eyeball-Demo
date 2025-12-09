@@ -9,6 +9,29 @@ let eyeballRoot = null;
 let irisMesh = null;
 let scleraMesh = null;
 
+// active eye rig
+let currentEyeRig = null;
+
+// default config per model
+const DEFAULT_EYE_CONFIG = {
+    // gaze limits
+    maxYaw: 0.14,
+    maxPitch: 0.14,
+
+    // pupil scale limits
+    minPupilScale: 0.7,
+    maxPupilScale: 1.5,
+
+    // "eye open" limits
+    minEyeOpen: 0.7,
+    maxEyeOpen: 1.4,
+
+    // base model scale
+    baseScale: 1.0,
+
+    smoothingSpeed: 10.0,
+};
+
 let currentGazeX = 0;
 let currentGazeY = 0;
 
@@ -72,6 +95,18 @@ export function initRendering(canvas) {
         // root of eyeball
         eyeballRoot = gltf.scene;
 
+        // build inital rig for this model
+        currentEyeRig = {
+            root: eyeballRoot,
+
+            // update
+            pupilMesh: null,
+            irisMesh: null,
+            scleraMesh: null,
+
+            config: { ...DEFAULT_EYE_CONFIG },
+        }
+
         // positioning
         eyeballRoot.position.copy(EYE_START_POS);
         eyeballRoot.scale.copy(EYE_START_SCALE);
@@ -95,12 +130,43 @@ export function initRendering(canvas) {
     });
 }
 
+function applyPupilScale(rig, baseScale, safePupil) {
+    if (!rig || !rig.root) return;
+    const root = rig.root;
+
+    // single mesh model dilation
+    const subtle = 0.06; // avoid extreme distortion
+    const factor = 1 + (safePupil - 1) * subtle;
+
+    root.scale.set(
+        baseScale * factor,
+        baseScale * factor,
+        baseScale * factor
+    );
+}
+
+function applyEyeScale(rig, baseScale, safePupil, safeEyeOpen) {
+    if (!rig || !rig.root) return;
+    const root = rig.root;
+
+    const pupilFactor = safePupil;
+
+    const eyeOpenInfluence = 0.4; // how much eye open affects vertical scale
+    const eyeOpenFactor = 1 + (safeEyeOpen - 1) * eyeOpenInfluence;
+
+    const scaleX = baseScale * pupilFactor;
+    const scaleY = baseScale * pupilFactor * eyeOpenFactor;
+    const scaleZ = baseScale * pupilFactor;
+
+    root.scale.set(scaleX, scaleY, scaleZ);
+}
+
 export function updateRendering(deltaTime, behaviourState) {
     // safety check if something is not initialized
     if (!renderer || !scene || !camera) return;
 
     // eyeball not loaded yet
-    if (!eyeballRoot) {
+    if (!currentEyeRig || !currentEyeRig.root) {
         renderer.render(scene, camera);
         return;
     }
@@ -110,6 +176,9 @@ export function updateRendering(deltaTime, behaviourState) {
         return;
     }
 
+    const eyeball = currentEyeRig.root;
+    const config = currentEyeRig.config || DEFAULT_EYE_CONFIG; 
+
     const { x, y } = behaviourState.targetCoords;
 
     // https://lisyarus.github.io/blog/posts/exponential-smoothing.html
@@ -117,10 +186,10 @@ export function updateRendering(deltaTime, behaviourState) {
     const deltaSeconds = deltaTime / 1000;
 
     // how quickly the eye catches up to the target (per second)
-    const SMOOTHING_SPEED = 10.0;
+    const smoothingSpeed = config.smoothingSpeed ?? 10.0;
 
     // smoothing factor
-    const alpha = 1 - Math.exp(-SMOOTHING_SPEED * deltaSeconds);
+    const alpha = 1 - Math.exp(-smoothingSpeed * deltaSeconds);
 
     // guard for weird deltaSeconds (first frame debug)
     // FIX CENTERING ISSUE...
@@ -142,8 +211,8 @@ export function updateRendering(deltaTime, behaviourState) {
     currentGazeY += (y - currentGazeY) * lerpAmount;
 
     // how far the eye is allowed to rotate (adjust later)
-    const MAX_YAW = 0.14;
-    const MAX_PITCH = 0.14;
+    const MAX_YAW = config.maxYaw;
+    const MAX_PITCH = config.maxPitch;
 
     // twitch bsed on emotion
     let jitterYaw = 0;
@@ -166,10 +235,10 @@ export function updateRendering(deltaTime, behaviourState) {
     eyeballRoot.rotation.x = pitch; // pitch (up/down)
 
     // fake, placeholder behaviour until you get the actual model
-    const BASE_SCALE = 1.0;
+    const BASE_SCALE = config.baseScale ?? 1.0;
 
-    const safePupil = clamp(currentPupilScale, 0.7, 1.5);
-    const safeEyeOpen = clamp(currentEyeOpen, 0.7, 1.4); 
+    const safePupil = clamp(currentPupilScale, config.minPupilScale, config.maxPupilScale);
+    const safeEyeOpen = clamp(currentEyeOpen, config.minEyeOpen, config.maxEyeOpen); 
     /*
     const scaleX = BASE_SCALE * safePupil;
     const scaleY = BASE_SCALE * safePupil * safeEyeOpen;
@@ -177,7 +246,8 @@ export function updateRendering(deltaTime, behaviourState) {
     eyeball.scale.set(scaleX, scaleY, scaleZ);
     */
 
-    eyeballRoot.scale.set(BASE_SCALE, BASE_SCALE, BASE_SCALE);
+    // applyPupilScale(currentEyeRig, BASE_SCALE, safePupil);
+    applyEyeScale(currentEyeRig, BASE_SCALE, safePupil, safeEyeOpen);
 
     renderer.render(scene, camera);
 }
