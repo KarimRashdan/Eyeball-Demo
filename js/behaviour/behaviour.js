@@ -13,6 +13,10 @@ let behaviourState = {
     pupilScale: 1.0,              // scale of the pupil based on emotion
     eyeOpen: 1.0,                 // how open the eye is based on emotion
     jitterStrength: 0.0,          // amount of jitter to apply based on emotion
+
+    // blink
+    blinkProgress: 0.0,          // 0.0 = open, 1.0 = closed
+    blinkPhase: "idle",          // idle, closing, opening
 };
 
 const EMOTION_PRESETS = {
@@ -32,12 +36,48 @@ function applyEmotionPreset(state) {
     state.jitterStrength = preset.jitterStrength;
 }
 
+function updateBlinkState(state, emotionChanged) {
+    // safety
+    if (state.blinkProgress == null) {
+        state.blinkProgress = 0.0;
+        state.blinkPhase = "idle";
+    }
+
+    // start blink if emotion changed
+    if (emotionChanged && state.blinkPhase === "idle") {
+            state.blinkPhase = "closing";
+    }
+
+    if (state.blinkPhase === "closing") {
+        state.blinkProgress += BLINK_CLOSE_SPEED;
+
+        if (state.blinkProgress >= 1.0) {
+            state.blinkProgress = 1.0;
+            state.blinkPhase = "opening";
+        }
+        return;
+    }
+
+    if (state.blinkPhase === "opening") {
+        state.blinkProgress -= BLINK_OPEN_SPEED;
+
+        if (state.blinkProgress <= 0.0) {
+            state.blinkProgress = 0.0;
+            state.blinkPhase = "idle";
+        }
+    }
+}
+
+
 // pretty self explanatory really
 let hadFaceLastFrame = false;
 // when target disappears don't instantly wander, wait
 const HOLD_GAZE_FRAMES = 30; // 30 = 0.5 seconds at 60 fps
 const MIN_LOCK_FRAMES = 300;  // drastically change these later
 const MAX_LOCK_FRAMES = 1200;
+// blink
+const BLINK_CLOSE_SPEED = 0.25; // per frame, 0.25 = 4 frames to close
+const BLINK_OPEN_SPEED = 0.20;  // per frame, 0.20 = 5 frames to open
 
 
 // responsible for initializing eyeball's behavioural state
@@ -52,6 +92,13 @@ export function initBehaviour() {
         noFaceFrames: 0,
         currentTargetIdx: -1,
         lockFrames: 0,
+        pupilScale: 1.0,
+        eyeOpen: 1.0,
+        jitterStrength: 0.0,
+
+        // blink
+        blinkProgress: 0.0,
+        blinkPhase: "idle",
     };
     hadFaceLastFrame = false;
     console.log("Behaviour initialized:", behaviourState);
@@ -62,8 +109,15 @@ export function updateBehaviour(faces, emotionLabel) {
     const safeFaces = faces || [];
     const numFaces = safeFaces.length;
 
+    // detect emotion change for blink
+    const previousEmotion = behaviourState.emotion;
+    const newEmotion = emotionLabel || "neutral";
+    const emotionChanged = newEmotion !== previousEmotion;
+
     // keep behaviourState emotion synced up w detector
-    behaviourState.emotion = emotionLabel || "neutral";
+    behaviourState.emotion = newEmotion;
+
+    updateBlinkState(behaviourState, emotionChanged);
 
     const hadFace = hadFaceLastFrame;
     hadFaceLastFrame = numFaces > 0;

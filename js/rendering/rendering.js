@@ -130,21 +130,6 @@ export function initRendering(canvas) {
     });
 }
 
-function applyPupilScale(rig, baseScale, safePupil) {
-    if (!rig || !rig.root) return;
-    const root = rig.root;
-
-    // single mesh model dilation
-    const subtle = 0.06; // avoid extreme distortion
-    const factor = 1 + (safePupil - 1) * subtle;
-
-    root.scale.set(
-        baseScale * factor,
-        baseScale * factor,
-        baseScale * factor
-    );
-}
-
 function applyEyeScale(rig, baseScale, safePupil, safeEyeOpen) {
     if (!rig || !rig.root) return;
     const root = rig.root;
@@ -230,9 +215,13 @@ export function updateRendering(deltaTime, behaviourState) {
     const yaw = -currentGazeX * MAX_YAW + jitterYaw;
     const pitch = -currentGazeY * MAX_PITCH + jitterPitch;
 
+    // so jitter doesn't exceed limits
+    const clampedYaw = clamp(yaw, -MAX_YAW, MAX_YAW);
+    const clampedPitch = clamp(pitch, -MAX_PITCH, MAX_PITCH);
+
     // apply gaze rotation w/ jitter
-    eyeballRoot.rotation.y = yaw;   // yaw (left/right)
-    eyeballRoot.rotation.x = pitch; // pitch (up/down)
+    eyeballRoot.rotation.y = clampedYaw;   // yaw (left/right)
+    eyeballRoot.rotation.x = clampedPitch; // pitch (up/down)
 
     // fake, placeholder behaviour until you get the actual model
     const BASE_SCALE = config.baseScale ?? 1.0;
