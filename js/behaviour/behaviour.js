@@ -76,8 +76,8 @@ const HOLD_GAZE_FRAMES = 30; // 30 = 0.5 seconds at 60 fps
 const MIN_LOCK_FRAMES = 300;  // drastically change these later
 const MAX_LOCK_FRAMES = 1200;
 // blink
-const BLINK_CLOSE_SPEED = 0.25; // per frame, 0.25 = 4 frames to close
-const BLINK_OPEN_SPEED = 0.20;  // per frame, 0.20 = 5 frames to open
+const BLINK_CLOSE_SPEED = 0.05; // per frame, 0.25 = 4 frames to close
+const BLINK_OPEN_SPEED = 0.05;  // per frame, 0.20 = 5 frames to open
 
 
 // responsible for initializing eyeball's behavioural state

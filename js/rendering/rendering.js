@@ -238,5 +238,19 @@ export function updateRendering(deltaTime, behaviourState) {
     // applyPupilScale(currentEyeRig, BASE_SCALE, safePupil);
     applyEyeScale(currentEyeRig, BASE_SCALE, safePupil, safeEyeOpen);
 
+    const blinkOverlay = document.getElementById("blink-overlay");
+    if (blinkOverlay && behaviourState && typeof behaviourState.blinkProgress === "number") {
+        const raw = clamp(behaviourState.blinkProgress, 0.0, 1.0);
+
+        // smooth
+        const t = raw * raw * (3 - 2 * raw); // smoothstep
+
+        // scale(0) = fully open, scale(1) = fully closed
+        blinkOverlay.style.transform = `scaleY(${t})`;
+
+        // opacity ramps w curve
+        blinkOverlay.style.opacity = (0.9 * t).toFixed(3); // max opacity 0.8
+    }
+
     renderer.render(scene, camera);
 }
