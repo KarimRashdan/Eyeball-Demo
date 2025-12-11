@@ -190,6 +190,10 @@ export function updateUI(behaviourState) {
         phase = "initial";
         phaseStartTime = now;
         lockedEmotion = "neutral";
+
+        behaviourState.uiLocked = false;
+        behaviourState.uiLockedEmotion = "neutral";
+
         return;
     }
 
@@ -198,6 +202,9 @@ export function updateUI(behaviourState) {
         lockedEmotion = "neutral";
         setEdgePromptsVisible(false);
         promptText.textContent = "Staying neutral for a moment...";
+
+        behaviourState.uiLocked = false;
+        behaviourState.uiLockedEmotion = "neutral";
 
         if (now - phaseStartTime >= INITIAL_NEUTRAL_MS) {
             phase = "choice";
@@ -210,7 +217,24 @@ export function updateUI(behaviourState) {
     if (phase === "choice") {
         updateEdgePromptTexts();
         setEdgePromptsVisible(true);
+
+        if (emotion === EDGE_EMOTIONS.top && promptTop) {
+            promptTop.style.display = "none";
+        }
+        if (emotion === EDGE_EMOTIONS.bottom && promptBottom) {
+            promptBottom.style.display = "none";
+        }
+        if (emotion === EDGE_EMOTIONS.left && promptLeft) {
+            promptLeft.style.display = "none";
+        }
+        if (emotion === EDGE_EMOTIONS.right && promptRight) {
+            promptRight.style.display = "none";
+        }
+
         promptText.textContent = "Pick an emotion from around the screen!";
+
+        behaviourState.uiLocked = false;
+        behaviourState.uiLockedEmotion = "neutral";
 
         // as soon as user acts the emotion, lock it in
         if (emotion !== "neutral" && EMOTIONS.includes(emotion) && emotion !== lockedEmotion) {
@@ -228,6 +252,9 @@ export function updateUI(behaviourState) {
 
         const pretty = LABELS[lockedEmotion] ?? lockedEmotion;
         promptText.textContent = `Locked on: ${pretty}`;
+
+        behaviourState.uiLocked = true;
+        behaviourState.uiLockedEmotion = lockedEmotion;
 
         if (now - phaseStartTime >= EMOTION_LOCK_MS) {
             phase = "choice";
