@@ -79,6 +79,9 @@ const MAX_LOCK_FRAMES = 1200;
 const BLINK_CLOSE_SPEED = 0.05; // per frame, 0.25 = 4 frames to close
 const BLINK_OPEN_SPEED = 0.05;  // per frame, 0.20 = 5 frames to open
 
+// behaviour lock
+const EMOTION_LOCK_MS = 5000;  
+let emotionLockUntil = 0;
 
 // responsible for initializing eyeball's behavioural state
 export function initBehaviour() {
@@ -109,13 +112,28 @@ export function updateBehaviour(faces, emotionLabel) {
     const safeFaces = faces || [];
     const numFaces = safeFaces.length;
 
-    // detect emotion change for blink
-    const previousEmotion = behaviourState.emotion;
-    const newEmotion = emotionLabel || "neutral";
-    const emotionChanged = newEmotion !== previousEmotion;
+    const now = performance.now();
 
-    // keep behaviourState emotion synced up w detector
-    behaviourState.emotion = newEmotion;
+    const previousEmotion = behaviourState.emotion;
+    const rawEmotion = emotionLabel || "neutral";
+
+    // still locked?
+    const lockActive = now < emotionLockUntil;
+
+    if (lockActive) {
+        // stay locked on the emotion
+    } else {
+        if (rawEmotion !== previousEmotion) {
+            behaviourState.emotion = rawEmotion;
+            // when entering !neutral, start new lock
+            if (rawEmotion !== "neutral") {
+                emotionLockUntil = now + EMOTION_LOCK_MS;
+            }
+        }
+    } 
+
+    const displayEmotion = behaviourState.emotion;
+    const emotionChanged = displayEmotion !== previousEmotion;
 
     updateBlinkState(behaviourState, emotionChanged);
 
