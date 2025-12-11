@@ -1,17 +1,16 @@
 let root = null;
 let panelElement = null;
-let promptElement = null;
 let debugElement = null;
 let promptText = null;
 
 const EMOTIONS = ["neutral", "happy", "sad", "angry", "surprised"];
 
-let currentEmotionForPrompt = null;
-let emotionEnterTime = 0;
-let hasPromptedForCurrentEmotion = false;
-
-const EMOTION_PROMPT_DELAY_MS = 3000;
-
+const EDGE_EMOTIONS = {
+    top: "happy",
+    bottom: "sad",
+    left: "surprised",
+    right: "angry",
+};
 
 const LABELS = {
     neutral: "Neutral 😊",
@@ -21,11 +20,62 @@ const LABELS = {
     surprised: "Surprised 😲",
 };
 
+// ADJUST ------------------------
+const INITIAL_NEUTRAL_MS = 3000;
+const EMOTION_LOCK_MS = 5000;
+
+// initial -> choice -> locked -> choice ...
+let phase =  "initial";
+let phaseStartTime = performance.now();
+let lockedEmotion = "neutral";
+
+// edge promptss
+let promptTop = null;
+let promptBottom = null;
+let promptLeft = null;
+let promptRight = null;
+
+function createEdgePrompt(position) {
+    const el = document.createElement("div");
+    el.className = `emotion-edge-prompt emotion-edge-prompt-${position}`;
+    el.textContent = "";
+    document.body.appendChild(el);
+    return el;
+}
+
+function setEdgePromptsVisible(visible) {
+    const display = visible ? "flex" : "none";
+    [promptTop, promptRight, promptBottom, promptLeft].forEach((el) => {
+        if (el) el.style.display = display;
+    });
+}
+
+function updateEdgePromptTexts() {
+    if (!promptTop) return;
+
+    const topLabel = LABELS[EDGE_EMOTIONS.top] ?? "Happy";
+    const bottomLabel = LABELS[EDGE_EMOTIONS.bottom] ?? "Sad";
+    const leftLabel = LABELS[EDGE_EMOTIONS.left] ?? "Surprised";
+    const rightLabel = LABELS[EDGE_EMOTIONS.right] ?? "Angry";
+
+    promptTop.textContent = `Try acting ${topLabel}!`;
+    promptBottom.textContent = `Try acting ${bottomLabel}!`;
+    promptLeft.textContent = `Try acting ${leftLabel}!`;
+    promptRight.textContent = `Try acting ${rightLabel}!`;
+}
+
+/*
+let currentEmotionForPrompt = null;
+let emotionEnterTime = 0;
+let hasPromptedForCurrentEmotion = false;
+
+const EMOTION_PROMPT_DELAY_MS = 3000;
+
 function pickAlternativeEmotion(current) {
     const remaining = EMOTIONS.filter((e) => e !== current);
     const choice = remaining[Math.floor(Math.random() * remaining.length)];
     return `Try acting ${LABELS[choice]}!`;
-}
+}*/
 
 // initializes the UI components
 export function initUI(rootElement) {
@@ -46,7 +96,7 @@ export function initUI(rootElement) {
     header.textContent = "Eyeball Debug";
     panel.appendChild(header);
 
-    // prompt
+    // prompt (ui)
     const promptSection = document.createElement("div");
     promptSection.className = "ui-section";
 
@@ -82,8 +132,20 @@ export function initUI(rootElement) {
     root.appendChild(panel);
 
     panelElement = panel;
-    promptElement = promptSection;
     debugElement = debugText;
+
+    // the big four (Metallica, Anthrax, Megadeth, Slayer)
+    promptTop = createEdgePrompt("top");
+    promptBottom = createEdgePrompt("bottom");
+    promptLeft = createEdgePrompt("left");
+    promptRight = createEdgePrompt("right");
+
+    updateEdgePromptTexts();
+    setEdgePromptsVisible(false);
+
+    phase = "initial";
+    phaseStartTime = performance.now();
+    lockedEmotion = "neutral";
 }
 
 // updates the UI based on the behaviour state
@@ -94,6 +156,8 @@ export function updateUI(behaviourState) {
         debugElement.textContent = "No behaviour state yet";
         return;
     }
+
+    const now = performance.now();
 
     const mode = behaviourState.mode ?? "unknown";
     const numFaces = behaviourState.numFaces ?? 0;
@@ -119,25 +183,56 @@ export function updateUI(behaviourState) {
 
     if (!promptText) return;
 
-    const now = performance.now();
-
+    // reset to initial neutral
     if (numFaces === 0) {
         promptText.textContent = "";
-        currentEmotionForPrompt = null;
-        hasPromptedForCurrentEmotion = false;
+        setEdgePromptsVisible(false);
+        phase = "initial";
+        phaseStartTime = now;
+        lockedEmotion = "neutral";
         return;
     }
 
-    if (emotion !== currentEmotionForPrompt) {
-        currentEmotionForPrompt = emotion;
-        emotionEnterTime = now;
-        hasPromptedForCurrentEmotion = false;
+    // phase initial neutral
+    if (phase === "initial") {
+        lockedEmotion = "neutral";
+        setEdgePromptsVisible(false);
+        promptText.textContent = "Staying neutral for a moment...";
+
+        if (now - phaseStartTime >= INITIAL_NEUTRAL_MS) {
+            phase = "choice";
+            phaseStartTime = now;
+        }
+    return;
+    }
+
+    // user choosing next emotion
+    if (phase === "choice") {
+        updateEdgePromptTexts();
+        setEdgePromptsVisible(true);
+        promptText.textContent = "Pick an emotion from around the screen!";
+
+        // as soon as user acts the emotion, lock it in
+        if (emotion !== "neutral" && EMOTIONS.includes(emotion) && emotion !== lockedEmotion) {
+            lockedEmotion = emotion;
+            phase = "locked";
+            phaseStartTime = now;
+            setEdgePromptsVisible(false);
+        }
         return;
     }
 
-    if (!hasPromptedForCurrentEmotion && now - emotionEnterTime >= EMOTION_PROMPT_DELAY_MS) {
-        const suggestion = pickAlternativeEmotion(emotion);
-        promptText.textContent = suggestion;
-        hasPromptedForCurrentEmotion = true;
+    // locked on chosen emotion for EMOTION_LOCK_MS
+    if (phase === "locked") {
+        setEdgePromptsVisible(false);
+
+        const pretty = LABELS[lockedEmotion] ?? lockedEmotion;
+        promptText.textContent = `Locked on: ${pretty}`;
+
+        if (now - phaseStartTime >= EMOTION_LOCK_MS) {
+            phase = "choice";
+            phaseStartTime = now;
+        }
+        return;
     }
 }
