@@ -5,10 +5,6 @@ let scene, camera, renderer;
 // root node of glTF eyeball model
 let eyeballRoot = null;
 
-// for the other models, later
-let irisMesh = null;
-let scleraMesh = null;
-
 // active eye rig
 let currentEyeRig = null;
 
@@ -238,6 +234,7 @@ export function updateRendering(deltaTime, behaviourState) {
     // applyPupilScale(currentEyeRig, BASE_SCALE, safePupil);
     applyEyeScale(currentEyeRig, BASE_SCALE, safePupil, safeEyeOpen);
 
+    /*
     const blinkOverlay = document.getElementById("blink-overlay");
     if (blinkOverlay && behaviourState && typeof behaviourState.blinkProgress === "number") {
         const raw = clamp(behaviourState.blinkProgress, 0.0, 1.0);
@@ -251,6 +248,7 @@ export function updateRendering(deltaTime, behaviourState) {
         // opacity ramps w curve
         blinkOverlay.style.opacity = (0.9 * t).toFixed(3); // max opacity 0.8
     }
+        */
 
     renderer.render(scene, camera);
 }

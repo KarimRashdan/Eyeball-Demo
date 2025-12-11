@@ -65,12 +65,16 @@ function classifyEmotion(blendshapes) {
     const noseSneerR = getCoeff(blendshapes, "noseSneerRight");
     const frownL = getCoeff(blendshapes, "mouthFrownLeft");
     const frownR = getCoeff(blendshapes, "mouthFrownRight");
+    const eyeSquintL = getCoeff(blendshapes, "eyeSquintLeft");
+    const eyeSquintR = getCoeff(blendshapes, "eyeSquintRight");
+    const browInnerUp = getCoeff(blendshapes, "browInnerUp");
 
     // UPDATE THESE AND ADD NEW ONES LATER
     const happyScore = (smileL + smileR) * 0.6 + (cheekSquintL + cheekSquintR) * 0.4;
     const surprisedScore = (eyeWideL + eyeWideR) * 0.3 + mouthOpen * 0.5 + (browUpL + browUpR) * 0.2;
-    const angryScore = (browDownL + browDownR) * 0.5 + (noseSneerL + noseSneerR) * 0.5;
-    const sadScore = (frownL + frownR) * 0.6 + (browDownL + browDownR) * 0.4;
+    // const angryScore = (browDownL + browDownR) * 0.5 + (noseSneerL + noseSneerR) * 0.5;
+    const angryScore = ((browDownL + browDownR)) * 0.7 + ((noseSneerL + noseSneerR)) * 0.2 + ((eyeSquintL + eyeSquintR)) * 0.1;
+    const sadScore = ((frownL + frownR)) * 0.75 + (browInnerUp * 0.25);
 
     const emotions = [
         { label: "happy", score: happyScore },
@@ -85,7 +89,7 @@ function classifyEmotion(blendshapes) {
         if (emotion.score > best.score) best = emotion;
     }
 
-    // ADJUST AFTER TESTING
+    // ADJUST AFTER TESTING ---------------------------------
     const THRESHOLD = 0.4;
     if (best.score < THRESHOLD) {
         return "neutral";
