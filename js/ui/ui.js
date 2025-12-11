@@ -23,6 +23,7 @@ const LABELS = {
 // ADJUST ------------------------
 const INITIAL_NEUTRAL_MS = 3000;
 const EMOTION_LOCK_MS = 5000;
+const CHOICE_DELAY_MS = 1500;
 
 // initial -> choice -> locked -> choice ...
 let phase =  "initial";
@@ -199,11 +200,12 @@ export function updateUI(behaviourState) {
 
     // phase initial neutral
     if (phase === "initial") {
+        window.choicePhaseStart = null;
         lockedEmotion = "neutral";
         setEdgePromptsVisible(false);
         promptText.textContent = "Staying neutral for a moment...";
 
-        behaviourState.uiLocked = false;
+        behaviourState.uiLocked = true;
         behaviourState.uiLockedEmotion = "neutral";
 
         if (now - phaseStartTime >= INITIAL_NEUTRAL_MS) {
@@ -217,6 +219,10 @@ export function updateUI(behaviourState) {
     if (phase === "choice") {
         updateEdgePromptTexts();
         setEdgePromptsVisible(true);
+
+        if (!window.choicePhaseStart) {
+            window.choicePhaseStart = now;
+        }
 
         if (emotion === EDGE_EMOTIONS.top && promptTop) {
             promptTop.style.display = "none";
@@ -237,11 +243,13 @@ export function updateUI(behaviourState) {
         behaviourState.uiLockedEmotion = "neutral";
 
         // as soon as user acts the emotion, lock it in
-        if (emotion !== "neutral" && EMOTIONS.includes(emotion) && emotion !== lockedEmotion) {
+        if (now - window.choicePhaseStart >= CHOICE_DELAY_MS && emotion !== "neutral" && EMOTIONS.includes(emotion) && emotion !== lockedEmotion) {
             lockedEmotion = emotion;
             phase = "locked";
             phaseStartTime = now;
             setEdgePromptsVisible(false);
+
+            window.choicePhaseStart = null;
         }
         return;
     }
@@ -249,6 +257,7 @@ export function updateUI(behaviourState) {
     // locked on chosen emotion for EMOTION_LOCK_MS
     if (phase === "locked") {
         setEdgePromptsVisible(false);
+        window.choicePhaseStart = null;
 
         const pretty = LABELS[lockedEmotion] ?? lockedEmotion;
         promptText.textContent = `Locked on: ${pretty}`;
