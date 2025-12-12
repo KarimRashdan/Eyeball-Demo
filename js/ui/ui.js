@@ -2,6 +2,7 @@ let root = null;
 let panelElement = null;
 let debugElement = null;
 let promptText = null;
+let chosenEmotionLabel = null;
 
 const EMOTIONS = ["neutral", "happy", "sad", "angry", "surprised"];
 
@@ -24,6 +25,9 @@ const LABELS = {
 const INITIAL_NEUTRAL_MS = 3000;
 const EMOTION_LOCK_MS = 5000;
 const CHOICE_DELAY_MS = 1500;
+const CHOSEN_LABEL_MS = 3000;
+
+let chosenLabelStartTime = null;
 
 // initial -> choice -> locked -> choice ...
 let phase =  "initial";
@@ -63,6 +67,21 @@ function updateEdgePromptTexts() {
     promptBottom.textContent = `Try acting ${bottomLabel}!`;
     promptLeft.textContent = `Try acting ${leftLabel}!`;
     promptRight.textContent = `Try acting ${rightLabel}!`;
+}
+
+function ensureChosenEmotionLabel() {
+    if (chosenEmotionLabel) return;
+
+    chosenEmotionLabel = document.createElement("div");
+    chosenEmotionLabel.id = "chosen-emotion-label";
+    chosenEmotionLabel.style.display = "none";
+    document.body.appendChild(chosenEmotionLabel);
+}
+
+function setChosenEmotionLabel(emotion) {
+    ensureChosenEmotionLabel();
+    chosenEmotionLabel.textContent = emotion;
+    chosenEmotionLabel.style.display = emotion ? "block" : "none";
 }
 
 /*
@@ -159,6 +178,7 @@ export function updateUI(behaviourState) {
     }
 
     const now = performance.now();
+    ensureChosenEmotionLabel();
 
     const mode = behaviourState.mode ?? "unknown";
     const numFaces = behaviourState.numFaces ?? 0;
@@ -197,6 +217,9 @@ export function updateUI(behaviourState) {
         behaviourState.uiLocked = false;
         behaviourState.uiLockedEmotion = "neutral";
 
+        setChosenEmotionLabel("");
+        chosenLabelStartTime = null;
+
         return;
     }
 
@@ -206,6 +229,9 @@ export function updateUI(behaviourState) {
         lockedEmotion = "neutral";
         setEdgePromptsVisible(false);
         promptText.textContent = "Staying neutral for a moment...";
+
+        setChosenEmotionLabel("");
+        chosenLabelStartTime = null;
 
         behaviourState.uiLocked = true;
         behaviourState.uiLockedEmotion = "neutral";
@@ -222,6 +248,9 @@ export function updateUI(behaviourState) {
         updateEdgePromptTexts();
         setEdgePromptsVisible(true);
 
+        setChosenEmotionLabel("");
+        chosenLabelStartTime = null;
+
         if (!window.choicePhaseStart) {
             window.choicePhaseStart = now;
         }
@@ -237,6 +266,8 @@ export function updateUI(behaviourState) {
         if (userPicked) {
             setEdgePromptsVisible(false);
             lockedEmotion = rawEmotion;
+            setChosenEmotionLabel(lockedEmotion);
+            chosenLabelStartTime = now;
             phase = "locked";
             phaseStartTime = now;
             window.choicePhaseStart = null;
@@ -253,6 +284,12 @@ export function updateUI(behaviourState) {
     // locked on chosen emotion for EMOTION_LOCK_MS
     if (phase === "locked") {
         setEdgePromptsVisible(false);
+
+        if (chosenLabelStartTime != null&& (now - chosenLabelStartTime) >= CHOSEN_LABEL_MS) {
+            setChosenEmotionLabel("");
+            chosenLabelStartTime = null;
+        }
+
         window.choicePhaseStart = null;
 
         const pretty = LABELS[lockedEmotion] ?? lockedEmotion;

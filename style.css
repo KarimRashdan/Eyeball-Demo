@@ -121,3 +121,17 @@
     right: 16px;
     transform: translateY(-50%);
 }
+
+#chosen-emotion-label {
+    position: fixed;
+    top: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 28px;
+    font-weight: 700;
+    color: white;
+    text-transform: lowercase;
+    pointer-events: none;
+    user-select: none;
+    z-index: 9999;
+}
