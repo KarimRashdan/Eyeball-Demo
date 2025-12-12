@@ -211,8 +211,8 @@ export function updateUI(behaviourState) {
         setChosenEmotionLabel("");
         chosenLabelStartTime = null;
 
-        behaviourState.uiLocked = false;
-        behaviourState.uiLockedEmotion = "neutral";
+        behaviourState.uiLocked = true;
+        behaviourState.uiLockedEmotion = lockedEmotion;
     }
 
     hadFacePrev = hasFace;
@@ -223,6 +223,7 @@ export function updateUI(behaviourState) {
 
     // Delete later
     debugElement.textContent =
+        `phase=${phase}\n` +
         `mode=${mode}\n` +
         `numFaces=${numFaces}\n` +
         `target=(${tx}, ${ty})\n` +
@@ -257,8 +258,8 @@ export function updateUI(behaviourState) {
         promptText.textContent = "";
         setChosenEmotionLabel("");
 
-        behaviourState.uiLocked = false;
-        behaviourState.uiLockedEmotion = "neutral";
+        behaviourState.uiLocked = true;
+        behaviourState.uiLockedEmotion = lockedEmotion;
 
         if (now - phaseStartTime >= FACE_ACQUIRED_MS) {
             phase = "initial";
