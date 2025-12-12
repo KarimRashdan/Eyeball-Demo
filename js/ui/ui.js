@@ -295,7 +295,6 @@ export function updateUI(behaviourState) {
     // user choosing next emotion
     if (phase === "choice") {
         updateEdgePromptTexts();
-        setEdgePromptsVisible(true);
 
         setChosenEmotionLabel("");
         chosenLabelStartTime = null;
@@ -304,12 +303,23 @@ export function updateUI(behaviourState) {
             window.choicePhaseStart = now;
         }
 
+        const choiceDelayPassed = now - window.choicePhaseStart >= CHOICE_DELAY_MS;
+
+        if (!choiceDelayPassed) {
+            setEdgePromptsVisible(false);
+            promptText.textContent = "Get ready...";
+            behaviourState.uiLocked = false;
+            behaviourState.uiLockedEmotion = "neutral";
+            return;
+        }
+
+        promptText.textContent = "Pick an emotion from around the screen!";
+        setEdgePromptsVisible(true);
+
         if (displayEmotion === EDGE_EMOTIONS.top && promptTop) promptTop.style.display = "none";
         if (displayEmotion === EDGE_EMOTIONS.bottom && promptBottom) promptBottom.style.display = "none";
         if (displayEmotion === EDGE_EMOTIONS.left && promptLeft) promptLeft.style.display = "none";
         if (displayEmotion === EDGE_EMOTIONS.right && promptRight) promptRight.style.display = "none";
-
-        const choiceDelayPassed = now - window.choicePhaseStart >= CHOICE_DELAY_MS;
 
         // arm after they come back to neutral, maybe adjust
         if (!choiceArmed) {
@@ -351,8 +361,6 @@ export function updateUI(behaviourState) {
             candidateSince = null;
         }
 
-        promptText.textContent = "Pick an emotion from around the screen!";
-
         behaviourState.uiLocked = false;
         behaviourState.uiLockedEmotion = "neutral";
 
@@ -363,7 +371,7 @@ export function updateUI(behaviourState) {
     if (phase === "locked") {
         setEdgePromptsVisible(false);
 
-        if (chosenLabelStartTime != null&& (now - chosenLabelStartTime) >= CHOSEN_LABEL_MS) {
+        if (chosenLabelStartTime != null && (now - chosenLabelStartTime) >= CHOSEN_LABEL_MS) {
             setChosenEmotionLabel("");
             chosenLabelStartTime = null;
         }
