@@ -40,6 +40,8 @@ let hadFacePrev = false;
 
 let chosenLabelStartTime = null;
 
+let pendingChoice = false;
+
 // initial -> choice -> locked -> choice ...
 let phase =  "initial";
 let phaseStartTime = performance.now();
@@ -270,7 +272,6 @@ export function updateUI(behaviourState) {
 
     // phase initial neutral
     if (phase === "initial") {
-        window.choicePhaseStart = null;
         lockedEmotion = "neutral";
         setEdgePromptsVisible(false);
         promptText.textContent = "Staying neutral for a moment...";
@@ -282,13 +283,21 @@ export function updateUI(behaviourState) {
         behaviourState.uiLockedEmotion = "neutral";
 
         if (now - phaseStartTime >= INITIAL_NEUTRAL_MS) {
-            phase = "choice";
-            phaseStartTime = now;
+            if (window.choicePhaseStart == null) {
+                window.choicePhaseStart = now;
+            }
 
-            choiceArmed = false;
-            neutralSince = null;
-            candidateEmotion = "neutral";
-            candidateSince = null;
+            if ((now - window.choicePhaseStart) >= CHOICE_DELAY_MS) {
+                phase = "choice";
+                phaseStartTime = now;
+
+                choiceArmed = false;
+                neutralSince = null;
+                candidateEmotion = "neutral";
+                candidateSince = null;
+
+                window.choicePhaseStart = null;
+            }
         }
     return;
     }
@@ -300,18 +309,8 @@ export function updateUI(behaviourState) {
         setChosenEmotionLabel("");
         chosenLabelStartTime = null;
 
-        if (!window.choicePhaseStart) {
+        if (window.choicePhaseStart == null) {
             window.choicePhaseStart = now;
-        }
-
-        const choiceDelayPassed = now - window.choicePhaseStart >= CHOICE_DELAY_MS;
-
-        if (!choiceDelayPassed) {
-            setEdgePromptsVisible(false);
-            promptText.textContent = "Get ready...";
-            behaviourState.uiLocked = false;
-            behaviourState.uiLockedEmotion = "neutral";
-            return;
         }
 
         promptText.textContent = "Pick an emotion from around the screen!";
@@ -327,7 +326,7 @@ export function updateUI(behaviourState) {
             if (rawEmotion === "neutral") {
                 if (neutralSince == null) neutralSince = now;
 
-                if ((now - neutralSince) >= NEUTRAL_ARM_MS && choiceDelayPassed) {
+                if ((now - neutralSince) >= NEUTRAL_ARM_MS) {
                     choiceArmed = true;
                     candidateEmotion = "neutral";
                     candidateSince = null;
@@ -362,8 +361,8 @@ export function updateUI(behaviourState) {
             candidateSince = null;
         }
 
-        behaviourState.uiLocked = false;
-        behaviourState.uiLockedEmotion = "neutral";
+        behaviourState.uiLocked = true;
+        behaviourState.uiLockedEmotion = lockedEmotion;
 
         return;
     }
