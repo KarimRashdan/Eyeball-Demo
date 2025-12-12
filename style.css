@@ -13,6 +13,7 @@
 }
 
 #ui-root {
+    /*display: none;*/
     position: absolute;
     top: 12px;
     left: 12px;

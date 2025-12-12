@@ -163,6 +163,8 @@ export function updateUI(behaviourState) {
     const mode = behaviourState.mode ?? "unknown";
     const numFaces = behaviourState.numFaces ?? 0;
     const emotion = behaviourState.emotion ?? "unknown";
+    const displayEmotion = behaviourState.emotion ?? "neutral";
+    const rawEmotion = behaviourState.rawEmotion ?? displayEmotion;
     const pupilScale = behaviourState.pupilScale ?? 1;
     const eyeOpen = behaviourState.eyeOpen ?? 1;
     const jitterStrength = behaviourState.jitterStrength ?? 0;
@@ -224,17 +226,20 @@ export function updateUI(behaviourState) {
             window.choicePhaseStart = now;
         }
 
-        if (emotion === EDGE_EMOTIONS.top && promptTop) {
-            promptTop.style.display = "none";
-        }
-        if (emotion === EDGE_EMOTIONS.bottom && promptBottom) {
-            promptBottom.style.display = "none";
-        }
-        if (emotion === EDGE_EMOTIONS.left && promptLeft) {
-            promptLeft.style.display = "none";
-        }
-        if (emotion === EDGE_EMOTIONS.right && promptRight) {
-            promptRight.style.display = "none";
+        if (displayEmotion === EDGE_EMOTIONS.top && promptTop) promptTop.style.display = "none";
+        if (displayEmotion === EDGE_EMOTIONS.bottom && promptBottom) promptBottom.style.display = "none";
+        if (displayEmotion === EDGE_EMOTIONS.left && promptLeft) promptLeft.style.display = "none";
+        if (displayEmotion === EDGE_EMOTIONS.right && promptRight) promptRight.style.display = "none";
+
+        const choiceDelayPassed = now - window.choicePhaseStart >= CHOICE_DELAY_MS;
+        const userPicked = choiceDelayPassed && rawEmotion !== "neutral" && EMOTIONS.includes(rawEmotion) && rawEmotion !== lockedEmotion;
+
+        if (userPicked) {
+            setEdgePromptsVisible(false);
+            lockedEmotion = rawEmotion;
+            phase = "locked";
+            phaseStartTime = now;
+            window.choicePhaseStart = null;
         }
 
         promptText.textContent = "Pick an emotion from around the screen!";
@@ -242,15 +247,6 @@ export function updateUI(behaviourState) {
         behaviourState.uiLocked = false;
         behaviourState.uiLockedEmotion = "neutral";
 
-        // as soon as user acts the emotion, lock it in
-        if (now - window.choicePhaseStart >= CHOICE_DELAY_MS && emotion !== "neutral" && EMOTIONS.includes(emotion) && emotion !== lockedEmotion) {
-            lockedEmotion = emotion;
-            phase = "locked";
-            phaseStartTime = now;
-            setEdgePromptsVisible(false);
-
-            window.choicePhaseStart = null;
-        }
         return;
     }
 

@@ -114,6 +114,7 @@ export function updateBehaviour(faces, emotionLabel) {
 
     const previousEmotion = behaviourState.emotion;
     const rawEmotion = emotionLabel || "neutral";
+    behaviourState.rawEmotion = rawEmotion;
 
     const uiLocked = behaviourState.uiLocked === true;
     const uiLockedEmotion = behaviourState.uiLockedEmotion || "neutral";
