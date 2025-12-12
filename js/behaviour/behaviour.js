@@ -38,6 +38,8 @@ let hadFaceLastFrame = false;
 const HOLD_GAZE_FRAMES = 30; // 30 = 0.5 seconds at 60 fps
 const MAX_LOCK_FRAMES = 1200;
 
+const LOST_FACE_GRACE_FRAMES = 60;
+
 // responsible for initializing eyeball's behavioural state
 export function initBehaviour() {
     behaviourState = {
@@ -85,36 +87,32 @@ export function updateBehaviour(faces, emotionLabel) {
 
     // if the face has just been lost this frame
     if (numFaces === 0) {
+        behaviourState.noFaceFrames += 1;
+
+        if (behaviourState.noFaceFrames === 1) {
+            behaviourState.idleTarget = { ...behaviourState.targetCoords };
+        }
+
+        if (behaviourState.noFaceFrames <= LOST_FACE_GRACE_FRAMES) {
+            behaviourState.mode = "tracking";
+            behaviourState.numFaces = 1;
+            behaviourState.targetCoords = behaviourState.idleTarget;
+            applyEmotionPreset(behaviourState);
+            return behaviourState;
+        }
+
+        behaviourState.mode = "Idle";
         behaviourState.numFaces = 0;
         behaviourState.currentTargetIdx = -1;
         behaviourState.lockFrames = 0;
 
-        if (hadFace) {
-            behaviourState.mode = "idle";
-            behaviourState.noFaceFrames = 0;
-
-            // freeze idleTarget at wherever the eyeballl was last looking
-            behaviourState.idleTarget = { ...behaviourState.targetCoords };
+        if (behaviourState.noFaceFrames <= LOST_FACE_GRACE_FRAMES + HOLD_GAZE_FRAMES) {
             behaviourState.targetCoords = behaviourState.idleTarget;
-
-            return behaviourState;
-        }
-
-        // post disappearance settling period
-        if (behaviourState.noFaceFrames < HOLD_GAZE_FRAMES) {
-            behaviourState.noFaceFrames += 1;
-
-            // keep looking at last target
-            behaviourState.targetCoords = behaviourState.idleTarget;
-
-            // apply emotion
             applyEmotionPreset(behaviourState);
-
             return behaviourState;
         }
 
         // basic idle mode
-        behaviourState.mode = "idle";
         const updatedIdle = updateIdleBehaviour(behaviourState);
         applyEmotionPreset(updatedIdle);
         return updatedIdle;
