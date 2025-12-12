@@ -27,6 +27,9 @@ const EMOTION_LOCK_MS = 5000;
 const CHOICE_DELAY_MS = 1500;
 const CHOSEN_LABEL_MS = 3000;
 
+const FACE_ACQUIRED_MS = 1500;
+let hadFacePrev = false;
+
 let chosenLabelStartTime = null;
 
 // initial -> choice -> locked -> choice ...
@@ -190,6 +193,22 @@ export function updateUI(behaviourState) {
     const jitterStrength = behaviourState.jitterStrength ?? 0;
     const target = behaviourState.targetCoords ?? { x: 0, y: 0 };
 
+    const hasFace = numFaces > 0;
+    if (hasFace && !hadFacePrev) {
+        phase = "acquire";
+        phaseStartTime = now;
+
+        setEdgePromptsVisible(false);
+        if (promptText) promptText.textContent = "";
+        setChosenEmotionLabel("");
+        chosenLabelStartTime = null;
+
+        behaviourState.uiLocked = false;
+        behaviourState.uiLockedEmotion = "neutral";
+    }
+
+    hadFacePrev = hasFace;
+
     // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number/toFixed
     const tx = Number.isFinite(target.x) ? target.x.toFixed(2) : "NaN";
     const ty = Number.isFinite(target.y) ? target.y.toFixed(2) : "NaN";
@@ -220,6 +239,23 @@ export function updateUI(behaviourState) {
         setChosenEmotionLabel("");
         chosenLabelStartTime = null;
 
+        hadFacePrev = false;
+
+        return;
+    }
+
+    if (phase === "acquire") {
+        setEdgePromptsVisible(false);
+        promptText.textContent = "";
+        setChosenEmotionLabel("");
+
+        behaviourState.uiLocked = false;
+        behaviourState.uiLockedEmotion = "neutral";
+
+        if (now - phaseStartTime >= FACE_ACQUIRED_MS) {
+            phase = "initial";
+            phaseStartTime = now;
+        }
         return;
     }
 
