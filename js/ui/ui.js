@@ -26,8 +26,16 @@ const INITIAL_NEUTRAL_MS = 3000;
 const EMOTION_LOCK_MS = 5000;
 const CHOICE_DELAY_MS = 1500;
 const CHOSEN_LABEL_MS = 3000;
-
+const NEUTRAL_ARM_MS = 300;
+const PICK_HOLD_MS = 200;
 const FACE_ACQUIRED_MS = 1500;
+
+let choiceArmed = false;
+let neutralSince = null;
+
+let candidateEmotion = "neutral";
+let candidateSince = null;
+
 let hadFacePrev = false;
 
 let chosenLabelStartTime = null;
@@ -275,6 +283,11 @@ export function updateUI(behaviourState) {
         if (now - phaseStartTime >= INITIAL_NEUTRAL_MS) {
             phase = "choice";
             phaseStartTime = now;
+
+            choiceArmed = false;
+            neutralSince = null;
+            candidateEmotion = "neutral";
+            candidateSince = null;
         }
     return;
     }
@@ -297,16 +310,45 @@ export function updateUI(behaviourState) {
         if (displayEmotion === EDGE_EMOTIONS.right && promptRight) promptRight.style.display = "none";
 
         const choiceDelayPassed = now - window.choicePhaseStart >= CHOICE_DELAY_MS;
-        const userPicked = choiceDelayPassed && rawEmotion !== "neutral" && EMOTIONS.includes(rawEmotion) && rawEmotion !== lockedEmotion;
+
+        // arm after they come back to neutral, maybe adjust
+        if (!choiceArmed) {
+            if (rawEmotion === "neutral") {
+                if (neutralSince == null) neutralSince = now;
+
+                if ((now - neutralSince) >= NEUTRAL_ARM_MS && choiceDelayPassed) {
+                    choiceArmed = true;
+                    candidateEmotion = "neutral";
+                    candidateSince = null;
+                }
+            } else {
+                neutralSince = null;
+            }
+            return;
+        }
+
+        if (rawEmotion !== candidateEmotion) {
+            candidateEmotion = rawEmotion;
+            candidateSince = now;
+        }
+
+        const isValidPick = candidateEmotion !== "neutral" && EMOTIONS.includes(candidateEmotion) && candidateEmotion !== lockedEmotion;
+        const heldLongEnough = candidateSince != null && (now - candidateSince) >= PICK_HOLD_MS;
+        const userPicked = isValidPick && heldLongEnough;
 
         if (userPicked) {
             setEdgePromptsVisible(false);
-            lockedEmotion = rawEmotion;
+            lockedEmotion = candidateEmotion;
             setChosenEmotionLabel(lockedEmotion);
             chosenLabelStartTime = now;
             phase = "locked";
             phaseStartTime = now;
             window.choicePhaseStart = null;
+
+            choiceArmed = false;
+            neutralSince = null;
+            candidateEmotion = "neutral";
+            candidateSince = null;
         }
 
         promptText.textContent = "Pick an emotion from around the screen!";
@@ -337,6 +379,11 @@ export function updateUI(behaviourState) {
         if (now - phaseStartTime >= EMOTION_LOCK_MS) {
             phase = "choice";
             phaseStartTime = now;
+
+            choiceArmed = false;
+            neutralSince = null;
+            candidateEmotion = "neutral";
+            candidateSince = null;
         }
         return;
     }
