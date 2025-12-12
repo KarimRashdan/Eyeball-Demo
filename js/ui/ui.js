@@ -29,6 +29,7 @@ const CHOSEN_LABEL_MS = 3000;
 const NEUTRAL_ARM_MS = 300;
 const PICK_HOLD_MS = 200;
 const FACE_ACQUIRED_MS = 1500;
+const RETURN_NEUTRAL_DELAY_MS = 1500;
 
 let choiceArmed = false;
 let neutralSince = null;
@@ -39,6 +40,8 @@ let candidateSince = null;
 let hadFacePrev = false;
 
 let chosenLabelStartTime = null;
+
+let returnNeutralStartTime = null;
 
 let pendingChoice = false;
 
@@ -207,6 +210,7 @@ export function updateUI(behaviourState) {
     if (hasFace && !hadFacePrev) {
         phase = "acquire";
         phaseStartTime = now;
+        returnNeutralStartTime = null;
 
         setEdgePromptsVisible(false);
         if (promptText) promptText.textContent = "";
@@ -242,7 +246,7 @@ export function updateUI(behaviourState) {
         setEdgePromptsVisible(false);
         phase = "initial";
         phaseStartTime = now;
-        lockedEmotion = "neutral";
+        returnNeutralStartTime = null;
 
         behaviourState.uiLocked = false;
         behaviourState.uiLockedEmotion = "neutral";
@@ -272,13 +276,23 @@ export function updateUI(behaviourState) {
 
     // phase initial neutral
     if (phase === "initial") {
-        lockedEmotion = "neutral";
+        const stillInReturnGrace = returnNeutralStartTime != null && (now - returnNeutralStartTime) < RETURN_NEUTRAL_DELAY_MS;
+
         setEdgePromptsVisible(false);
         promptText.textContent = "Staying neutral for a moment...";
 
         setChosenEmotionLabel("");
         chosenLabelStartTime = null;
 
+        if (stillInReturnGrace) {
+            promptText.textContent = "";
+            behaviourState.uiLocked = true;
+            behaviourState.uiLockedEmotion = lockedEmotion;
+            return;
+        }
+
+        lockedEmotion = "neutral";
+        promptText.textContent = "Staying neutral for a moment...";
         behaviourState.uiLocked = true;
         behaviourState.uiLockedEmotion = "neutral";
 
