@@ -9,14 +9,17 @@ let eyeballRoot = null;
 let currentEyeRig = null;
 
 const MODEL_PATHS = {
-    default: "assets/blue_eyeball_free/scene.gltf",
-    angry: "assets/red_dragon_eyeball_-_blender_file/scene.gltf",
+    neutral: "assets/default/scene.gltf",
+    happy: "assets/default/scene.gltf",
+    sad: "assets/default/scene.gltf",
+    surprised: "assets/default/scene.gltf",
+    angry: "assets/angry/scene.gltf",
 };
 
 const gltfLoader = new GLTFLoader();
 const modelCache = new Map();
 
-let activeModelKey = "default";
+let activeModelKey = "neutral";
 let isSwappingModel = false;
 
 function loadModelRoot(modelKey) {
@@ -148,7 +151,7 @@ export function initRendering(canvas) {
     });
     */
 
-    loadModelRoot("default").then((root) => {
+    loadModelRoot("neutral").then((root) => {
         eyeballRoot = root.clone(true);
 
         currentEyeRig = {
@@ -164,7 +167,7 @@ export function initRendering(canvas) {
         eyeballRoot.rotation.copy(EYE_START_ROT);
 
         scene.add(eyeballRoot);
-        activeModelKey = "default";
+        activeModelKey = "neutral";
 
         console.log("Base eyeball loaded:", eyeballRoot);
     }).catch((error) => {
@@ -250,7 +253,7 @@ export function updateRendering(deltaTime, behaviourState) {
         return;
     }
 
-    const desiredModelKey = (behaviourState.emotion === "angry") ? "angry" : "default";
+    const desiredModelKey = MODEL_PATHS[behaviourState.emotion] ? behaviourState.emotion : "neutral";
     if (desiredModelKey !== activeModelKey) {
         swapEyeModel(desiredModelKey);
     }

@@ -1,0 +1,11 @@
+Model Information:
+* title:	Eyeball with Legs
+* source:	https://sketchfab.com/3d-models/eyeball-with-legs-0dd9c121b114469d92a0df444924e875
+* author:	LittleWhiteElk (https://sketchfab.com/LittleWhiteElk)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Eyeball with Legs" (https://sketchfab.com/3d-models/eyeball-with-legs-0dd9c121b114469d92a0df444924e875) by LittleWhiteElk (https://sketchfab.com/LittleWhiteElk) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
