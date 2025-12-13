@@ -65,9 +65,17 @@ function createEdgePrompt(position) {
 }
 
 function setEdgePromptsVisible(visible) {
-    const display = visible ? "flex" : "none";
     [promptTop, promptRight, promptBottom, promptLeft].forEach((el) => {
-        if (el) el.style.display = display;
+        if (!el) return;
+
+        el.style.display = "flex";
+
+        if (visible) {
+            void el.offsetWidth;
+            el.classList.add("show");
+        } else {
+            el.classList.remove("show");
+        }
     });
 }
 

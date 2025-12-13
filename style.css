@@ -98,6 +98,16 @@
     position: fixed;
     z-index: 9999;
     text-shadow: 0 2px 12px rgba(0, 0, 0, 0.75);
+
+    --pos-transform: translate(0, 0);
+    opacity: 0;
+    transform: var(--pos-transform) translateY(-10px);
+    transition: opacity 0.35s ease, transform 0.35s ease;
+}
+
+.emotion-edge-prompt.show {
+    opacity: 1;
+    transform: var(--pos-transform) translateY(0);
 }
 
 .emotion-edge-prompt .prompt-line1 {
@@ -119,25 +129,25 @@
 .emotion-edge-prompt-top {
     top: 16px;
     left: 50%;
-    transform: translateX(-50%);
+    --pos-transform: translateX(-50%);
 }
 
 .emotion-edge-prompt-bottom {
     bottom: 16px;
     left: 50%;
-    transform: translateX(-50%);
+    --pos-transform: translateX(-50%);
 }
 
 .emotion-edge-prompt-left {
     top: 50%;
     left: 16px;
-    transform: translateY(-50%);
+    --pos-transform: translateY(-50%);
 }
 
 .emotion-edge-prompt-right {
     top: 50%;
     right: 16px;
-    transform: translateY(-50%);
+    --pos-transform: translateY(-50%);
 }
 
 #chosen-emotion-label {
