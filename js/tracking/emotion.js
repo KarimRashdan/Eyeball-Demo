@@ -72,11 +72,10 @@ function classifyEmotion(blendshapes) {
 
     // UPDATE THESE AND ADD NEW ONES LATER
     const happyScore = (smileL + smileR) * 0.6 + (cheekSquintL + cheekSquintR) * 0.4;
-    const surprisedScore = (eyeWideL + eyeWideR) * 0.3 + mouthOpen * 0.5 + (browUpL + browUpR) * 0.2;
-    // const angryScore = (browDownL + browDownR) * 0.5 + (noseSneerL + noseSneerR) * 0.5;
+    //const surprisedScore = (eyeWideL + eyeWideR) * 0.3 + mouthOpen * 0.5 + (browUpL + browUpR) * 0.2;
+    const surprisedScore = (eyeWideL + eyeWideR) * 0.3 + mouthOpen * 0.5 + (browUpL + browUpR) * 0.2 - (frownL + frownR) * 0.4 - browInnerUp * 0.3;
     const angryScore = ((browDownL + browDownR)) * 0.7 + ((noseSneerL + noseSneerR)) * 0.2 + ((eyeSquintL + eyeSquintR)) * 0.1;
-    // const sadScore = ((frownL + frownR)) * 0.4 + browInnerUp * 0.5 + mouthPucker * 0.1;
-    const sadScore = mouthPucker * 0.2 + browInnerUp * 0.3 + ((frownL + frownR)) * 0.5;
+    const sadScore = mouthPucker * 0.1 + browInnerUp * 0.4 + ((frownL + frownR)) * 0.5;
 
     const emotions = [
         { label: "happy", score: happyScore },
