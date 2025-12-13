@@ -160,8 +160,18 @@
     font-weight: 800;
     text-transform: uppercase;
     line-height: 1.05;
+    text-align: center;
 
     text-shadow: 0 2px 12px rgba(0, 0, 0, 0.75);
+
+    opacity: 0;
+    transform: translateY(-10px);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+#chosen-emotion-label.show .chosen-emotion-text {
+    opacity: 1;
+    transform: translateY(0);
 }
 
 .emotion-happy {

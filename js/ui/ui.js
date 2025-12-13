@@ -101,13 +101,16 @@ function ensureChosenEmotionLabel() {
 function setChosenEmotionLabel(emotion) {
     ensureChosenEmotionLabel();
 
-    if (!chosenEmotionLabel) {
-        chosenEmotionLabel.style.display = "none";
+    if (!emotion) {
+        chosenEmotionLabel.classList.remove("show");
         return;
     }
 
     chosenEmotionLabel.innerHTML = `<div class="chosen-emotion-text emotion-${emotion}">${LABELS[emotion] ?? emotion}</div>`;
     chosenEmotionLabel.style.display = "block";
+
+    void chosenEmotionLabel.offsetWidth;
+    chosenEmotionLabel.classList.add("show");
 }
 
 /*
