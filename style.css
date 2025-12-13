@@ -103,6 +103,10 @@
     opacity: 0;
     transform: var(--pos-transform) translateY(-10px);
     transition: opacity 0.35s ease, transform 0.35s ease;
+
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: geometricPrecision;
 }
 
 .emotion-edge-prompt.show {
@@ -110,20 +114,40 @@
     transform: var(--pos-transform) translateY(0);
 }
 
+:root {
+    --ui-shadow-1: 0 2px 6px rgba(0, 0, 0, 0.45);
+    --ui-shadow-2: 0 10px 24px rgba(0, 0, 0, 0.35);
+}
+
+.emotion-edge-prompt .prompt-line1,
+.emotion-edge-prompt .prompt-line2,
+.chosen-emotion-text {
+    text-shadow: var(--ui-shadow-1), var(--ui-shadow-2);
+}
+
+.emotion-edge-prompt .prompt-line2,
+.chosen-emotion-text {
+    filter: drop-shadow(0 0 14px color-mix(in srgb, currentColor 55%, transparent));
+}
+
 .emotion-edge-prompt .prompt-line1 {
     font-family: Calibri, "Segoe UI", Arial, sans-serif;
     font-size: 20px; 
     font-weight: 600;
-    opacity: 0.9;
+    opacity: 0.75;
     line-height: 1.05;
+
+    letter-spacing: 0.02em;
 }
 
 .emotion-edge-prompt .prompt-line2 {
     font-family: "Times New Roman", Times, serif;
     font-size: clamp(36px, 5vw, 40px);
-    font-weight: 800;
+    font-weight: 700;
     text-transform: uppercase;
     line-height: 1.05;
+
+    letter-spacing: 0.06em;
 }
 
 .emotion-edge-prompt-top {
@@ -167,7 +191,7 @@
 .chosen-emotion-text {
     font-family: "Times New Roman", Times, serif;
     font-size: clamp(36px, 5vw, 40px);
-    font-weight: 800;
+    font-weight: 700;
     text-transform: uppercase;
     line-height: 1.05;
     text-align: center;
@@ -177,6 +201,8 @@
     opacity: 0;
     transform: translateY(-10px);
     transition: opacity 0.5s ease, transform 0.5s ease;
+
+    letter-spacing: 0.06em;
 }
 
 #chosen-emotion-label.show .chosen-emotion-text {
