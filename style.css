@@ -142,7 +142,7 @@
 
 #chosen-emotion-label {
     position: fixed;
-    top: 24px;
+    top: 12%;
     left: 50%;
     transform: translateX(-50%);
     font-size: 28px;
@@ -152,6 +152,16 @@
     pointer-events: none;
     user-select: none;
     z-index: 9999;
+}
+
+.chosen-emotion-text {
+    font-family: "Times New Roman", Times, serif;
+    font-size: clamp(36px, 5vw, 40px);
+    font-weight: 800;
+    text-transform: uppercase;
+    line-height: 1.05;
+
+    text-shadow: 0 2px 12px rgba(0, 0, 0, 0.75);
 }
 
 .emotion-happy {

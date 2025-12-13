@@ -100,8 +100,14 @@ function ensureChosenEmotionLabel() {
 
 function setChosenEmotionLabel(emotion) {
     ensureChosenEmotionLabel();
-    chosenEmotionLabel.textContent = emotion;
-    chosenEmotionLabel.style.display = emotion ? "block" : "none";
+
+    if (!chosenEmotionLabel) {
+        chosenEmotionLabel.style.display = "none";
+        return;
+    }
+
+    chosenEmotionLabel.innerHTML = `<div class="chosen-emotion-text emotion-${emotion}">${LABELS[emotion] ?? emotion}</div>`;
+    chosenEmotionLabel.style.display = "block";
 }
 
 /*
