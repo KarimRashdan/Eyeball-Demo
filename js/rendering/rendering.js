@@ -10,9 +10,9 @@ let currentEyeRig = null;
 
 const MODEL_PATHS = {
     neutral: "assets/default/scene.gltf",
-    happy: "assets/default/scene.gltf",
-    sad: "assets/default/scene.gltf",
-    surprised: "assets/default/scene.gltf",
+    happy: "assets/rubber_duck/scene.gltf",
+    sad: "assets/despair/scene.gltf",
+    surprised: "assets/bill_cipher/scene.gltf",
     angry: "assets/angry/scene.gltf",
 };
 
