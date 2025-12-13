@@ -8,6 +8,35 @@ let eyeballRoot = null;
 // active eye rig
 let currentEyeRig = null;
 
+const MODEL_PATHS = {
+    default: "assets/blue_eyeball_free/scene.gltf",
+    angry: "assets/red_dragon_eyeball_-_blender_file/scene.gltf",
+};
+
+const gltfLoader = new GLTFLoader();
+const modelCache = new Map();
+
+let activeModelKey = "default";
+let isSwappingModel = false;
+
+function loadModelRoot(modelKey) {
+    if (modelCache.has(modelKey)) return Promise.resolve(modelCache.get(modelKey));
+
+    const path = MODEL_PATHS[modelKey];
+    if (!path) return Promise.reject(new Error(`Model path not found for key: ${modelKey}`));
+
+    return new Promise((resolve, reject) => {
+        gltfLoader.load(path, (gltf) => {
+            const root = gltf.scene;
+            modelCache.set(modelKey, root);
+            resolve(root);
+            },
+            undefined,
+            reject
+        );
+    }); 
+}
+
 // default config per model
 const DEFAULT_EYE_CONFIG = {
     // gaze limits
@@ -86,6 +115,7 @@ export function initRendering(canvas) {
 
     // first eyeball model
     // https://threejs.org/docs/#GLTFLoader, https://discoverthreejs.com/book/first-steps/load-models/#:~:text=To%20load%20glTF%20files%2C%20first,this%20file%20in%20the%20editor.
+    /*
     const gltfLoader = new GLTFLoader();
     gltfLoader.load("assets/blue_eyeball_free/scene.gltf", (gltf) => {
         // root of eyeball
@@ -116,6 +146,30 @@ export function initRendering(canvas) {
     (error) => {
         console.error("Error loading base eyeball model:", error);
     });
+    */
+
+    loadModelRoot("default").then((root) => {
+        eyeballRoot = root.clone(true);
+
+        currentEyeRig = {
+            root: eyeballRoot,
+            pupilMesh: null,
+            irisMesh: null,
+            scleraMesh: null,
+            config: { ...DEFAULT_EYE_CONFIG },
+        };
+
+        eyeballRoot.position.copy(EYE_START_POS);
+        eyeballRoot.scale.copy(EYE_START_SCALE);
+        eyeballRoot.rotation.copy(EYE_START_ROT);
+
+        scene.add(eyeballRoot);
+        activeModelKey = "default";
+
+        console.log("Base eyeball loaded:", eyeballRoot);
+    }).catch((error) => {
+        console.error("Error loading base eyeball model:", error);
+    });
 
     // handle window resize
     // https://developer.mozilla.org/en-US/docs/Web/API/Window/resize_event
@@ -124,6 +178,45 @@ export function initRendering(canvas) {
         camera.updateProjectionMatrix();
         renderer.setSize(window.innerWidth, window.innerHeight);
     });
+}
+
+async function swapEyeModel(modelKey) {
+    if (!scene) return;
+    if (isSwappingModel) return;
+    if (modelKey === activeModelKey) return;
+
+    isSwappingModel = true;
+
+    try {
+        const oldRoot = currentEyeRig?.root;
+        const oldPos = oldRoot ? oldRoot.position.clone() : EYE_START_POS.clone();
+        const oldScale = oldRoot ? oldRoot.scale.clone() : EYE_START_SCALE.clone();
+        const oldRot = oldRoot ? oldRoot.rotation.clone() : EYE_START_ROT.clone();
+
+        if (oldRoot) scene.remove(oldRoot);
+
+        const base = await loadModelRoot(modelKey);
+        const newRoot = base.clone(true);
+
+        newRoot.position.copy(oldPos);
+        newRoot.scale.copy(oldScale);
+        newRoot.rotation.copy(oldRot);
+
+        eyeballRoot = newRoot;
+        currentEyeRig = {
+            root: newRoot,
+            pupilMesh: null,
+            irisMesh: null,
+            scleraMesh: null,
+            config: { ...DEFAULT_EYE_CONFIG },
+        };
+        scene.add(newRoot);
+        activeModelKey = modelKey;
+    } catch (e) {
+        console.error("Error swapping eye model:", e);
+    } finally {
+        isSwappingModel = false;
+    }
 }
 
 function applyEyeScale(rig, baseScale, safePupil, safeEyeOpen) {
@@ -155,6 +248,11 @@ export function updateRendering(deltaTime, behaviourState) {
     if (!behaviourState || !behaviourState.targetCoords) {
         renderer.render(scene, camera);
         return;
+    }
+
+    const desiredModelKey = (behaviourState.emotion === "angry") ? "angry" : "default";
+    if (desiredModelKey !== activeModelKey) {
+        swapEyeModel(desiredModelKey);
     }
 
     const eyeball = currentEyeRig.root;
