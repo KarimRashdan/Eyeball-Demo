@@ -74,8 +74,35 @@ const EYE_START_POS = new THREE.Vector3(0, 0, 0);         // x y z
 const EYE_START_SCALE = new THREE.Vector3(1.0, 1.0, 1.0); // uniform scale
 const EYE_START_ROT = new THREE.Euler(0, 0, 0);           // radians
 
+const MODEL_TRANSITION_MS = 2000;
+const MODEL_SWAP_AT = 0.9;
+
+let modelTransition = {
+    active: false,
+    fromKey: "default",
+    toKey: "default",
+    startTime: 0,
+    swapped: false,
+    baseRot: null,
+}
+
 function clamp(value, min, max) {
     return Math.max(min, Math.min(max, value));
+}
+
+function startModelTransition(toKey) {
+    if (!scene) return;
+    if (modelTransition.active) return;
+    if (toKey === activeModelKey) return;
+
+    modelTransition.active = true;
+    modelTransition.fromKey = activeModelKey;
+    modelTransition.toKey = toKey;
+    modelTransition.startTime = performance.now();
+    modelTransition.swapped = false;
+
+    const r = currentEyeRig?.root?.rotation;
+    modelTransition.baseRot = r ? r.clone() : new THREE.Euler(0, 0, 0);
 }
 
 // https://developer.mozilla.org/en-US/docs/Games/Techniques/3D_on_the_web/Building_up_a_basic_demo_with_Three.js
@@ -254,8 +281,8 @@ export function updateRendering(deltaTime, behaviourState) {
     }
 
     const desiredModelKey = MODEL_PATHS[behaviourState.emotion] ? behaviourState.emotion : "neutral";
-    if (desiredModelKey !== activeModelKey) {
-        swapEyeModel(desiredModelKey);
+    if (!modelTransition.active && desiredModelKey !== activeModelKey) {
+        startModelTransition(desiredModelKey);
     }
 
     const eyeball = currentEyeRig.root;
@@ -316,9 +343,32 @@ export function updateRendering(deltaTime, behaviourState) {
     const clampedYaw = clamp(yaw, -MAX_YAW, MAX_YAW);
     const clampedPitch = clamp(pitch, -MAX_PITCH, MAX_PITCH);
 
-    // apply gaze rotation w/ jitter
-    eyeballRoot.rotation.y = clampedYaw;   // yaw (left/right)
-    eyeballRoot.rotation.x = clampedPitch; // pitch (up/down)
+    if (modelTransition.active && currentEyeRig?.root) {
+        const now2 = performance.now();
+        const t = Math.min(1, (now2 - modelTransition.startTime) / MODEL_TRANSITION_MS);
+
+        const spin = t * Math.PI * 3; // 2 full spins
+
+        eyeballRoot.rotation.x = clampedPitch;
+        eyeballRoot.rotation.y = modelTransition.baseRot.y + spin;
+
+        if (!modelTransition.swapped && t >= MODEL_SWAP_AT) {
+            modelTransition.swapped = true;
+            swapEyeModel(modelTransition.toKey);
+        }
+
+        if (t >= 1) {
+            modelTransition.active = false;
+
+            if (modelTransition.baseRot) {
+                eyeballRoot.rotation.copy(modelTransition.baseRot);
+            }
+        }
+    } else {
+        // apply rotation
+        eyeballRoot.rotation.x = clampedPitch;
+        eyeballRoot.rotation.y = clampedYaw;
+    }
 
     // fake, placeholder behaviour until you get the actual model
     const BASE_SCALE = config.baseScale ?? 1.0;
@@ -352,4 +402,4 @@ export function updateRendering(deltaTime, behaviourState) {
         */
 
     renderer.render(scene, camera);
-}
+}   
