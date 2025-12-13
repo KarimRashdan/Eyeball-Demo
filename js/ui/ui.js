@@ -79,10 +79,10 @@ function updateEdgePromptTexts() {
     const leftLabel = LABELS[EDGE_EMOTIONS.left] ?? "Surprised";
     const rightLabel = LABELS[EDGE_EMOTIONS.right] ?? "Angry";
 
-    promptTop.textContent = `Try acting ${topLabel}!`;
-    promptBottom.textContent = `Try acting ${bottomLabel}!`;
-    promptLeft.textContent = `Try acting ${leftLabel}!`;
-    promptRight.textContent = `Try acting ${rightLabel}!`;
+    promptTop.innerHTML = `<div class="prompt-line1">Try acting</div><div class="prompt-line2">${topLabel}!</div>`;
+    promptBottom.innerHTML = `<div class="prompt-line1">Try acting</div><div class="prompt-line2">${bottomLabel}!</div>`;
+    promptLeft.innerHTML = `<div class="prompt-line1">Try acting</div><div class="prompt-line2">${leftLabel}!</div>`;
+    promptRight.innerHTML = `<div class="prompt-line1">Try acting</div><div class="prompt-line2">${rightLabel}!</div>`;
 }
 
 function ensureChosenEmotionLabel() {
