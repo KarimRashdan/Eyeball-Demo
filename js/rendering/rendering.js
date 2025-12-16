@@ -110,7 +110,7 @@ export function initRendering(canvas) {
 
     // create renderer and attach it to canvas
     renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setPixelRatio(1.0);
     renderer.setSize(window.innerWidth, window.innerHeight);
 
     // create scene

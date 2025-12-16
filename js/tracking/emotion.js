@@ -73,7 +73,7 @@ function classifyEmotion(blendshapes) {
     // UPDATE THESE AND ADD NEW ONES LATER
     const happyScore = (smileL + smileR) * 0.6 + (cheekSquintL + cheekSquintR) * 0.4;
     //const surprisedScore = (eyeWideL + eyeWideR) * 0.3 + mouthOpen * 0.5 + (browUpL + browUpR) * 0.2;
-    const surprisedScore = (eyeWideL + eyeWideR) * 0.3 + mouthOpen * 0.5 + (browUpL + browUpR) * 0.2 - (frownL + frownR) * 0.4 - browInnerUp * 0.3;
+    const surprisedScore = (eyeWideL + eyeWideR) * 0.3 + mouthOpen * 0.7 - (frownL + frownR) * 0.7;
     const angryScore = ((browDownL + browDownR)) * 0.7 + ((noseSneerL + noseSneerR)) * 0.2 + ((eyeSquintL + eyeSquintR)) * 0.1;
     const sadScore = mouthPucker * 0.1 + browInnerUp * 0.4 + ((frownL + frownR)) * 0.5 - mouthOpen * 0.7 - (eyeWideL + eyeWideR) * 0.2;
 
@@ -91,7 +91,7 @@ function classifyEmotion(blendshapes) {
     }
 
     // ADJUST AFTER TESTING ---------------------------------
-    const THRESHOLD = 0.4;
+    const THRESHOLD = 0.34;
     if (best.score < THRESHOLD) {
         return "neutral";
     }
