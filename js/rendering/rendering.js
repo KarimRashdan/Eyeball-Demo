@@ -282,16 +282,6 @@ export function updateRendering(deltaTime, behaviourState) {
     }
 
     const desiredModelKey = MODEL_PATHS[behaviourState.emotion] ? behaviourState.emotion : "neutral";
-    if (!isSlideTransitionActive() && desiredModelKey !== activeModelKey) {
-        beginSlideTransition({
-            scene,
-            camera,
-            fromKey: activeModelKey,
-            toKey: desiredModelKey,
-            outgoingRoot: currentEyeRig.root,
-            loadModelRoot
-        });
-    }
 
     const eyeball = currentEyeRig.root;
     const config = currentEyeRig.config || DEFAULT_EYE_CONFIG; 
@@ -351,21 +341,34 @@ export function updateRendering(deltaTime, behaviourState) {
     const clampedYaw = clamp(yaw, -MAX_YAW, MAX_YAW);
     const clampedPitch = clamp(pitch, -MAX_PITCH, MAX_PITCH);
 
+    if (!isSlideTransitionActive() && desiredModelKey !== activeModelKey) {
+        beginSlideTransition({
+            scene,
+            camera,
+            fromKey: activeModelKey,
+            toKey: desiredModelKey,
+            outgoingRoot: currentEyeRig.root,
+            loadModelRoot,
+            baseYaw: clampedYaw,
+            basePitch: clampedPitch,
+        });
+    }
+
     if (isSlideTransitionActive()) {
+        const res = updateSlideTransition(performance.now());
         const { outgoingRoot, incomingRoot } = getSlideTransitionRoots();
-        const done = updateSlideTransition(performance.now());
 
-        if (outgoingRoot) {
-            outgoingRoot.rotation.x = clampedPitch;
-            outgoingRoot.rotation.y = clampedYaw;
+        if (outgoingRoot && res.outgoingPose) {
+            outgoingRoot.rotation.y = res.outgoingPose.yaw;
+            outgoingRoot.rotation.x = res.outgoingPose.pitch;
         }
 
-        if (incomingRoot) {
-            incomingRoot.rotation.x = clampedPitch;
-            incomingRoot.rotation.y = clampedYaw;
+        if (incomingRoot && res.incomingPose) {
+            incomingRoot.rotation.y = res.incomingPose.yaw;
+            incomingRoot.rotation.x = res.incomingPose.pitch;
         }
 
-        if (done) {
+        if (res.done) {
             const result = completeSlideTransition();
             if (result?.root) {
                 eyeballRoot = result.root;
@@ -380,8 +383,8 @@ export function updateRendering(deltaTime, behaviourState) {
             }
         }
     } else {
-        eyeball.rotation.x = clampedPitch;
         eyeball.rotation.y = clampedYaw;
+        eyeball.rotation.x = clampedPitch;
     }
 
     // fake, placeholder behaviour until you get the actual model

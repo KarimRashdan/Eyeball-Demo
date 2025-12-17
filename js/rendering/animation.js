@@ -1,8 +1,18 @@
 import * as THREE from "https://unpkg.com/three@0.181.2/build/three.module.js";
 
-const DEFAULT_DURATION_MS = 2000;
+const DEFAULT_DURATION_MS = 4000;
 
-const EDGE_MARGIN = 0.35;
+const EDGE_MARGIN = 0.7;
+
+const LOOK_RIGHT_YAW = +1.3;
+const LOOK_LEFT_YAW = -1.3;
+
+const SEG_TURN_RIGHT = 0.20;
+const SEG_HOLD_RIGHT = 0.10;
+const SEG_TURN_CENTER = 0.05;
+const SEG_HOLD_CENTER = 0.15;
+const SEG_EXIT_LEFT = 0.15;
+const SEG_ENTER_RIGHT = 0.25;
 
 let state = {
     active: false,
@@ -23,6 +33,10 @@ let state = {
 
     enterX: 3.0,
     exitX: -3.0,
+
+    baseYaw: 0,
+    basePitch: 0,
+    incomingShown: false,
 };
 
 function lerp(a, b, t) {
@@ -70,6 +84,8 @@ export function beginSlideTransition({
     outgoingRoot,
     loadModelRoot,
     durationMs,
+    baseYaw,
+    basePitch,
 }) {
     if (state.active) return;
     if (!scene || !camera || !outgoingRoot || !loadModelRoot) return;
@@ -92,6 +108,10 @@ export function beginSlideTransition({
     // cap start pos
     state.outgoingStartPos = outgoingRoot.position.clone();
 
+    state.baseYaw = typeof baseYaw === "number" ? baseYaw : 0;
+    state.basePitch = typeof basePitch === "number" ? basePitch : 0;
+    state.incomingShown = false;
+
     const outRadius = getApproxRadius(outgoingRoot);
     const { enterX, exitX } = computeOffScreenX(camera, outgoingRoot.position.z, outRadius);
     state.enterX = enterX;
@@ -111,6 +131,9 @@ export function beginSlideTransition({
         incoming.scale.copy(outgoingRoot.scale);
         incoming.rotation.copy(outgoingRoot.rotation);
 
+        incoming.visible = false;
+        state.incomingShown = false;
+
         state.incomingRoot = incoming;
         state.scene.add(incoming);
     })
@@ -121,21 +144,88 @@ export function beginSlideTransition({
 }
 
 export function updateSlideTransition(nowMs) {
-    if (!state.active) return false;
+    if (!state.active) {
+        return { done: false, outgoingPose: null, incomingPose: null };
+    }
 
     const t = clamp01((nowMs - state.startTime) / state.durationMs);
 
-    if (state.outgoingRoot && state.outgoingStartPos) {
-        state.outgoingRoot.position.x = lerp(state.outgoingStartPos.x, state.exitX, t);
+    const a0 = 0;
+    const a1 = a0 + SEG_TURN_RIGHT;
+    const a2 = a1 + SEG_HOLD_RIGHT;
+    const a3 = a2 + SEG_TURN_CENTER;
+    const a4 = a3 + SEG_HOLD_CENTER;
+    const a5 = a4 + SEG_EXIT_LEFT;
+    const a6 = a5 + SEG_ENTER_RIGHT;
+
+    const norm = (start, end) => clamp01((t - start) / Math.max((end - start), 0.0001));
+
+    let outgoingYaw = state.baseYaw;
+    let outgoingPitch = state.basePitch;
+
+    if (t < a1) {
+        const u = norm(a0, a1);
+        outgoingYaw = lerp(state.baseYaw, state.baseYaw + LOOK_RIGHT_YAW, u);
+    } else if (t < a2) {
+        outgoingYaw = state.baseYaw + LOOK_RIGHT_YAW;
+    } else if (t < a3) {
+        const u = norm(a2, a3);
+        outgoingYaw = lerp(state.baseYaw + LOOK_RIGHT_YAW, state.baseYaw, u);
+    } else if (t < a4) {
+        outgoingYaw = state.baseYaw;
+    } else if (t < a5) {
+        const u = norm(a4, a5);
+        outgoingYaw = lerp(state.baseYaw, state.baseYaw + LOOK_LEFT_YAW, u);
+    } else {
+        outgoingYaw = state.baseYaw + LOOK_LEFT_YAW;
     }
+
+    if (state.outgoingRoot && state.outgoingStartPos) {
+        if (t < a4) {
+            state.outgoingRoot.position.x = state.outgoingStartPos.x;
+        } else if (t < a5) {
+            const u = norm(a4, a5);
+            state.outgoingRoot.position.x = lerp(state.outgoingStartPos.x, state.exitX, u);
+        } else {
+            state.outgoingRoot.position.x = state.exitX;
+        }
+    }
+
+    let incomingYaw = null;
+    let incomingPitch = null;
 
     if (state.incomingRoot && state.outgoingStartPos) {
-        const targetX = state.outgoingStartPos.x;
-        state.incomingRoot.position.x = lerp(state.enterX, targetX, t);
+        if (t >= a5) {
+            if (!state.incomingShown) {
+                state.incomingRoot.visible = true;
+                state.incomingShown = true
+                state.incomingRoot.position.x = state.enterX;
+            }
+
+            const u = norm(a5, a6);
+
+            state.incomingRoot.position.x = lerp(state.enterX, state.outgoingStartPos.x, u);
+
+            const blendStart = 0.85;
+            if (u < blendStart) {
+                incomingYaw = state.baseYaw + LOOK_LEFT_YAW;
+            } else {
+                const v = (u - blendStart) / (1 - blendStart);
+                incomingYaw = lerp(state.baseYaw + LOOK_LEFT_YAW, state.baseYaw, clamp01(v));
+            }
+
+            incomingPitch = state.basePitch;
+
+        }
     }
 
-    return t >= 1;
+    const done = t >= 1;
 
+    return { 
+        done,
+        outgoingPose: state.outgoingRoot ? { yaw: outgoingYaw, pitch: outgoingPitch } : null,
+        incomingPose: state.incomingRoot && incomingYaw !== null ? { yaw: incomingYaw, pitch: incomingPitch } : null,
+    };
 }
 
 export function completeSlideTransition() {
