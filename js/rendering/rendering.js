@@ -1,5 +1,6 @@
 import * as THREE from "https://unpkg.com/three@0.181.2/build/three.module.js";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { beginSlideTransition, updateSlideTransition, isSlideTransitionActive, getSlideTransitionRoots, completeSlideTransition } from "./animation.js";
 
 let scene, camera, renderer;
 // root node of glTF eyeball model
@@ -281,8 +282,15 @@ export function updateRendering(deltaTime, behaviourState) {
     }
 
     const desiredModelKey = MODEL_PATHS[behaviourState.emotion] ? behaviourState.emotion : "neutral";
-    if (!modelTransition.active && desiredModelKey !== activeModelKey) {
-        startModelTransition(desiredModelKey);
+    if (!isSlideTransitionActive() && desiredModelKey !== activeModelKey) {
+        beginSlideTransition({
+            scene,
+            camera,
+            fromKey: activeModelKey,
+            toKey: desiredModelKey,
+            outgoingRoot: currentEyeRig.root,
+            loadModelRoot
+        });
     }
 
     const eyeball = currentEyeRig.root;
@@ -343,31 +351,37 @@ export function updateRendering(deltaTime, behaviourState) {
     const clampedYaw = clamp(yaw, -MAX_YAW, MAX_YAW);
     const clampedPitch = clamp(pitch, -MAX_PITCH, MAX_PITCH);
 
-    if (modelTransition.active && currentEyeRig?.root) {
-        const now2 = performance.now();
-        const t = Math.min(1, (now2 - modelTransition.startTime) / MODEL_TRANSITION_MS);
+    if (isSlideTransitionActive()) {
+        const { outgoingRoot, incomingRoot } = getSlideTransitionRoots();
+        const done = updateSlideTransition(performance.now());
 
-        const spin = t * Math.PI * 3; // 2 full spins
-
-        eyeballRoot.rotation.x = clampedPitch;
-        eyeballRoot.rotation.y = modelTransition.baseRot.y + spin;
-
-        if (!modelTransition.swapped && t >= MODEL_SWAP_AT) {
-            modelTransition.swapped = true;
-            swapEyeModel(modelTransition.toKey);
+        if (outgoingRoot) {
+            outgoingRoot.rotation.x = clampedPitch;
+            outgoingRoot.rotation.y = clampedYaw;
         }
 
-        if (t >= 1) {
-            modelTransition.active = false;
+        if (incomingRoot) {
+            incomingRoot.rotation.x = clampedPitch;
+            incomingRoot.rotation.y = clampedYaw;
+        }
 
-            if (modelTransition.baseRot) {
-                eyeballRoot.rotation.copy(modelTransition.baseRot);
+        if (done) {
+            const result = completeSlideTransition();
+            if (result?.root) {
+                eyeballRoot = result.root;
+                currentEyeRig = {
+                    root: result.root,
+                    pupilMesh: null,
+                    irisMesh: null,
+                    scleraMesh: null,
+                    config: { ...DEFAULT_EYE_CONFIG },
+                };
+                activeModelKey = result.toKey;
             }
         }
     } else {
-        // apply rotation
-        eyeballRoot.rotation.x = clampedPitch;
-        eyeballRoot.rotation.y = clampedYaw;
+        eyeball.rotation.x = clampedPitch;
+        eyeball.rotation.y = clampedYaw;
     }
 
     // fake, placeholder behaviour until you get the actual model
