@@ -1,6 +1,9 @@
 import * as THREE from "https://unpkg.com/three@0.181.2/build/three.module.js";
 import { baseTransition } from "./base.js";
 import { happyTransition } from "./happy.js";
+import { surprisedTransition } from "./surprised.js";
+import { sadTransition } from "./sad.js";
+import { neutralTransition } from "./neutral.js";
 
 const DEFAULT_DURATION_MS = 4000;
 
@@ -73,6 +76,9 @@ export function getTransitionRoots() {
 
 export function pickTransitionForToKey(toKey) {
     if (toKey === "happy") return happyTransition;
+    if (toKey === "surprised") return surprisedTransition;
+    if (toKey === "sad") return sadTransition;
+    if (toKey === "neutral") return neutralTransition;
     return baseTransition;
 }
 
