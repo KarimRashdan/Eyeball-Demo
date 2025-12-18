@@ -6,8 +6,8 @@ const H_SEG_LOOK_LEFT = 0.10
 const H_SEG_EXIT = 0.20;
 const H_SEG_ENTER = 0.44;
 
-const HAPPY_SCALE_PEAK = 1.8;
-const HAPPY_SPIN_X_TURNS = 0.6;
+const OUTGOING_SPIN = 0.3;
+const INCOMING_SPIN = 2.0;
 
 function lerp(a, b, t) {
     return a + (b - a) * t;
@@ -41,7 +41,7 @@ export const happyTransition = {
         const b5 = b4 + H_SEG_ENTER;
 
         const startSpin = 0;
-        const peakSpin = -Math.PI * 2 * HAPPY_SPIN_X_TURNS;
+        const peakSpin = -Math.PI * 2 * OUTGOING_SPIN;
 
         let outgoingYaw = ctx.baseYaw;
         let outgoingPitch = ctx.basePitch;
@@ -91,7 +91,7 @@ export const happyTransition = {
                     ctx.incomingShown = true
                     ctx.incomingRoot.position.x = enterFromLeftX;
 
-                    const startSpin = -Math.PI * 2 * HAPPY_SPIN_X_TURNS;
+                    const startSpin = -Math.PI * 2 * INCOMING_SPIN;
                     ctx.incomingRoot.rotation.x = startSpin;
                 }
 
@@ -99,7 +99,7 @@ export const happyTransition = {
 
                 ctx.incomingRoot.position.x = lerp(enterFromLeftX, ctx.outgoingStartPos.x, u);
 
-                const startSpin = -Math.PI * 2 * HAPPY_SPIN_X_TURNS;
+                const startSpin = -Math.PI * 2 * INCOMING_SPIN;
                 ctx.incomingRoot.rotation.x = lerp(startSpin, 0, u);
 
                 const blendStart = 0.85;

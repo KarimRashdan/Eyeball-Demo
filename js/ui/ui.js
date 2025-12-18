@@ -22,12 +22,12 @@ const LABELS = {
 };
 
 // ADJUST ------------------------
-const INITIAL_NEUTRAL_MS = 3000;
+const INITIAL_NEUTRAL_MS = 4000; // make 7000 
 const EMOTION_LOCK_MS = 8000; ////////////////
 const CHOICE_DELAY_MS = 1500;
 const CHOSEN_LABEL_MS = 3000;
 const NEUTRAL_ARM_MS = 300;
-const PICK_HOLD_MS = 200;
+const PICK_HOLD_MS = 400;
 const FACE_ACQUIRED_MS = 1500;
 const RETURN_NEUTRAL_DELAY_MS = 1500;
 
