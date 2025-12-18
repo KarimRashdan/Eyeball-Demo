@@ -121,20 +121,8 @@ function setChosenEmotionLabel(emotion) {
     chosenEmotionLabel.classList.add("show");
 }
 
-/*
-let currentEmotionForPrompt = null;
-let emotionEnterTime = 0;
-let hasPromptedForCurrentEmotion = false;
-
-const EMOTION_PROMPT_DELAY_MS = 3000;
-
-function pickAlternativeEmotion(current) {
-    const remaining = EMOTIONS.filter((e) => e !== current);
-    const choice = remaining[Math.floor(Math.random() * remaining.length)];
-    return `Try acting ${LABELS[choice]}!`;
-}*/
-
 // initializes the UI components
+// literally burn all of this
 export function initUI(rootElement) {
     root = rootElement;
     if (!root) return;

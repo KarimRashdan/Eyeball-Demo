@@ -125,7 +125,7 @@ export function updateEmotion(videoElement, time) {
     const blendshapes = result.faceBlendshapes[0].categories || [];
 
     // raw blendshape values
-    console.log("Blendshapes:", blendshapes);
+    //console.log("Blendshapes:", blendshapes);
 
     const label = classifyEmotion(blendshapes);
 

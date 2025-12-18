@@ -8,7 +8,7 @@ const SEG_HOLD_CENTER = 0.15;
 const SEG_EXIT_LEFT = 0.15;
 const SEG_ENTER_RIGHT = 0.25;
 
-const ANGRY_FAR_Z_OFFSET = 5.0;
+const ANGRY_FAR_Z_OFFSET = 0.0;
 
 function lerp(a, b, t) {
     return a + (b - a) * t;
