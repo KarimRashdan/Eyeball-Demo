@@ -228,7 +228,7 @@ export function updateUI(behaviourState) {
     const target = behaviourState.targetCoords ?? { x: 0, y: 0 };
     const noFaceFrames = behaviourState.noFaceFrames ?? 0;
 
-    const hasFace = (noFaceFrames === 0);   
+    const hasFace = (behaviourState.numFaces ?? 0) > 0;   
     if (hasFace && !hadFacePrev) {
         phase = "acquire";
         phaseStartTime = now;

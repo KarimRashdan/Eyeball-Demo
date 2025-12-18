@@ -18,8 +18,8 @@ let behaviourState = {
 const EMOTION_PRESETS = {
     neutral:  { pupilScale: 1.0, eyeOpen: 1.0, jitterStrength: 0.0 },
     happy:    { pupilScale: 1.0, eyeOpen: 1.0, jitterStrength: 0.0 },
-    sad:      { pupilScale: 0.95, eyeOpen: 0.8, jitterStrength: 0.0 },
-    angry:    { pupilScale: 0.85, eyeOpen: 0.9, jitterStrength: 0.45 },
+    sad:      { pupilScale: 1, eyeOpen: 0.8, jitterStrength: 0.0 },
+    angry:    { pupilScale: 1, eyeOpen: 0.9, jitterStrength: 0.45 },
     surprised:{ pupilScale: 1, eyeOpen: 1.25, jitterStrength: 0.2 },
 }
 

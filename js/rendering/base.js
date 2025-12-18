@@ -8,6 +8,8 @@ const SEG_HOLD_CENTER = 0.15;
 const SEG_EXIT_LEFT = 0.15;
 const SEG_ENTER_RIGHT = 0.25;
 
+const ANGRY_FAR_Z_OFFSET = 5.0;
+
 function lerp(a, b, t) {
     return a + (b - a) * t;
 }
@@ -71,15 +73,21 @@ export const baseTransition = {
 
         if (ctx.incomingRoot && ctx.outgoingStartPos) {
             if (t >= a5) {
+                const startZ = ctx.outgoingStartPos.z;
+                const farZ = (ctx.toKey === "angry") ? (startZ - ANGRY_FAR_Z_OFFSET) : startZ;
                 if (!ctx.incomingShown) {
                     ctx.incomingRoot.visible = true;
                     ctx.incomingShown = true
                     ctx.incomingRoot.position.x = ctx.enterX;
+                    ctx.incomingRoot.position.y = ctx.outgoingStartPos.y;
+
+                    ctx.incomingRoot.position.z = farZ;
                 }
 
                 const u = norm(t, a5, a6);
 
                 ctx.incomingRoot.position.x = lerp(ctx.enterX, ctx.outgoingStartPos.x, u);
+                ctx.incomingRoot.position.z = lerp(farZ, startZ, u);
 
                 const blendStart = 0.85;
                 if (u < blendStart) {
