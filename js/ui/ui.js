@@ -226,8 +226,9 @@ export function updateUI(behaviourState) {
     const eyeOpen = behaviourState.eyeOpen ?? 1;
     const jitterStrength = behaviourState.jitterStrength ?? 0;
     const target = behaviourState.targetCoords ?? { x: 0, y: 0 };
+    const noFaceFrames = behaviourState.noFaceFrames ?? 0;
 
-    const hasFace = numFaces > 0;
+    const hasFace = (noFaceFrames === 0);   
     if (hasFace && !hadFacePrev) {
         phase = "acquire";
         phaseStartTime = now;

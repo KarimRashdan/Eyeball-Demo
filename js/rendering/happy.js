@@ -7,7 +7,7 @@ const H_SEG_EXIT = 0.20;
 const H_SEG_ENTER = 0.44;
 
 const HAPPY_SCALE_PEAK = 1.8;
-const HAPPY_SPIN_X_TURNS = 1.25;
+const HAPPY_SPIN_X_TURNS = 0.6;
 
 function lerp(a, b, t) {
     return a + (b - a) * t;
@@ -40,20 +40,25 @@ export const happyTransition = {
         const b4 = b3 + H_SEG_EXIT;
         const b5 = b4 + H_SEG_ENTER;
 
-        let outScaleMul = 1.0;
-        if (t < b1) {
-            const u = norm(t, b0, b1);
-            outScaleMul = lerp(1.0, HAPPY_SCALE_PEAK, u);
-        } else if (t < b2) {
-            const u = norm(t, b1, b2);
-            outScaleMul = lerp(HAPPY_SCALE_PEAK, 1.0, u);
-        } else {
-            outScaleMul = 1.0;
-        }
-        applyScaleMul(ctx.outgoingRoot, ctx.outgoingBaseScale, outScaleMul);
+        const startSpin = 0;
+        const peakSpin = -Math.PI * 2 * HAPPY_SPIN_X_TURNS;
 
         let outgoingYaw = ctx.baseYaw;
-        const outgoingPitch = ctx.basePitch;
+        let outgoingPitch = ctx.basePitch;
+    
+        if (t < b1) {
+            const u = norm(t, b0, b1);
+            outgoingPitch = ctx.basePitch + lerp(startSpin, peakSpin, u);
+        } else if (t < b2) {
+            const u = norm(t, b1, b2);
+            outgoingPitch = ctx.basePitch + lerp(peakSpin, startSpin, u);
+        } else {
+            outgoingPitch = ctx.basePitch;
+        }
+        
+
+        //applyScaleMul(ctx.outgoingRoot, ctx.outgoingBaseScale, outScaleMul);
+
 
         if (t < b2) {
             outgoingYaw = ctx.baseYaw;

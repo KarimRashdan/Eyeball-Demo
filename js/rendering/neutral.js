@@ -4,7 +4,7 @@ const SEG_HOLD_LEFT = 0.18;
 const SEG_EXIT_LEFT = 0.22;
 const SEG_ENTER_RIGHT = 0.24;
 
-const LOOK_LEFT_YAW = -1.0;
+const LOOK_LEFT_YAW = -1.7;
 
 function lerp(a, b, t) {
     return a + (b - a) * t;
