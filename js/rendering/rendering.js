@@ -1,6 +1,6 @@
 import * as THREE from "https://unpkg.com/three@0.181.2/build/three.module.js";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
-import { beginSlideTransition, updateSlideTransition, isSlideTransitionActive, getSlideTransitionRoots, completeSlideTransition } from "./animation.js";
+import { beginTransition, updateTransition, completeTransition, isTransitionActive, getTransitionRoots, pickTransitionForToKey } from "./animation.js";
 
 let scene, camera, renderer;
 // root node of glTF eyeball model
@@ -21,7 +21,6 @@ const gltfLoader = new GLTFLoader();
 const modelCache = new Map();
 
 let activeModelKey = "neutral";
-let isSwappingModel = false;
 
 function loadModelRoot(modelKey) {
     if (modelCache.has(modelKey)) return Promise.resolve(modelCache.get(modelKey));
@@ -75,35 +74,8 @@ const EYE_START_POS = new THREE.Vector3(0, 0, 0);         // x y z
 const EYE_START_SCALE = new THREE.Vector3(1.0, 1.0, 1.0); // uniform scale
 const EYE_START_ROT = new THREE.Euler(0, 0, 0);           // radians
 
-const MODEL_TRANSITION_MS = 2000;
-const MODEL_SWAP_AT = 0.9;
-
-let modelTransition = {
-    active: false,
-    fromKey: "default",
-    toKey: "default",
-    startTime: 0,
-    swapped: false,
-    baseRot: null,
-}
-
 function clamp(value, min, max) {
     return Math.max(min, Math.min(max, value));
-}
-
-function startModelTransition(toKey) {
-    if (!scene) return;
-    if (modelTransition.active) return;
-    if (toKey === activeModelKey) return;
-
-    modelTransition.active = true;
-    modelTransition.fromKey = activeModelKey;
-    modelTransition.toKey = toKey;
-    modelTransition.startTime = performance.now();
-    modelTransition.swapped = false;
-
-    const r = currentEyeRig?.root?.rotation;
-    modelTransition.baseRot = r ? r.clone() : new THREE.Euler(0, 0, 0);
 }
 
 // https://developer.mozilla.org/en-US/docs/Games/Techniques/3D_on_the_web/Building_up_a_basic_demo_with_Three.js
@@ -211,45 +183,6 @@ export function initRendering(canvas) {
     });
 }
 
-async function swapEyeModel(modelKey) {
-    if (!scene) return;
-    if (isSwappingModel) return;
-    if (modelKey === activeModelKey) return;
-
-    isSwappingModel = true;
-
-    try {
-        const oldRoot = currentEyeRig?.root;
-        const oldPos = oldRoot ? oldRoot.position.clone() : EYE_START_POS.clone();
-        const oldScale = oldRoot ? oldRoot.scale.clone() : EYE_START_SCALE.clone();
-        const oldRot = oldRoot ? oldRoot.rotation.clone() : EYE_START_ROT.clone();
-
-        if (oldRoot) scene.remove(oldRoot);
-
-        const base = await loadModelRoot(modelKey);
-        const newRoot = base.clone(true);
-
-        newRoot.position.copy(oldPos);
-        newRoot.scale.copy(oldScale);
-        newRoot.rotation.copy(oldRot);
-
-        eyeballRoot = newRoot;
-        currentEyeRig = {
-            root: newRoot,
-            pupilMesh: null,
-            irisMesh: null,
-            scleraMesh: null,
-            config: { ...DEFAULT_EYE_CONFIG },
-        };
-        scene.add(newRoot);
-        activeModelKey = modelKey;
-    } catch (e) {
-        console.error("Error swapping eye model:", e);
-    } finally {
-        isSwappingModel = false;
-    }
-}
-
 function applyEyeScale(rig, baseScale, safePupil, safeEyeOpen) {
     if (!rig || !rig.root) return;
     const root = rig.root;
@@ -341,8 +274,9 @@ export function updateRendering(deltaTime, behaviourState) {
     const clampedYaw = clamp(yaw, -MAX_YAW, MAX_YAW);
     const clampedPitch = clamp(pitch, -MAX_PITCH, MAX_PITCH);
 
-    if (!isSlideTransitionActive() && desiredModelKey !== activeModelKey) {
-        beginSlideTransition({
+    if (!isTransitionActive() && desiredModelKey !== activeModelKey) {
+        const transition = pickTransitionForToKey(desiredModelKey);
+        beginTransition({
             scene,
             camera,
             fromKey: activeModelKey,
@@ -351,12 +285,13 @@ export function updateRendering(deltaTime, behaviourState) {
             loadModelRoot,
             baseYaw: clampedYaw,
             basePitch: clampedPitch,
+            transition,
         });
     }
 
-    if (isSlideTransitionActive()) {
-        const res = updateSlideTransition(performance.now());
-        const { outgoingRoot, incomingRoot } = getSlideTransitionRoots();
+    if (isTransitionActive()) {
+        const res = updateTransition(performance.now());
+        const { outgoingRoot, incomingRoot } = getTransitionRoots();
 
         if (outgoingRoot && res.outgoingPose) {
             outgoingRoot.rotation.y = res.outgoingPose.yaw;
@@ -365,11 +300,14 @@ export function updateRendering(deltaTime, behaviourState) {
 
         if (incomingRoot && res.incomingPose) {
             incomingRoot.rotation.y = res.incomingPose.yaw;
-            incomingRoot.rotation.x = res.incomingPose.pitch;
+
+            if (!res.lockIncomingRotX) {
+                incomingRoot.rotation.x = res.incomingPose.pitch;
+            }
         }
 
         if (res.done) {
-            const result = completeSlideTransition();
+            const result = completeTransition();
             if (result?.root) {
                 eyeballRoot = result.root;
                 currentEyeRig = {
@@ -392,31 +330,10 @@ export function updateRendering(deltaTime, behaviourState) {
 
     const safePupil = clamp(currentPupilScale, config.minPupilScale, config.maxPupilScale);
     const safeEyeOpen = clamp(currentEyeOpen, config.minEyeOpen, config.maxEyeOpen); 
-    /*
-    const scaleX = BASE_SCALE * safePupil;
-    const scaleY = BASE_SCALE * safePupil * safeEyeOpen;
-    const scaleZ = BASE_SCALE * safePupil;
-    eyeball.scale.set(scaleX, scaleY, scaleZ);
-    */
 
-    // applyPupilScale(currentEyeRig, BASE_SCALE, safePupil);
-    applyEyeScale(currentEyeRig, BASE_SCALE, safePupil, safeEyeOpen);
-
-    /*
-    const blinkOverlay = document.getElementById("blink-overlay");
-    if (blinkOverlay && behaviourState && typeof behaviourState.blinkProgress === "number") {
-        const raw = clamp(behaviourState.blinkProgress, 0.0, 1.0);
-
-        // smooth
-        const t = raw * raw * (3 - 2 * raw); // smoothstep
-
-        // scale(0) = fully open, scale(1) = fully closed
-        blinkOverlay.style.transform = `scaleY(${t})`;
-
-        // opacity ramps w curve
-        blinkOverlay.style.opacity = (0.9 * t).toFixed(3); // max opacity 0.8
+    if (!isTransitionActive()) {
+        applyEyeScale(currentEyeRig, BASE_SCALE, safePupil, safeEyeOpen);
     }
-        */
 
     renderer.render(scene, camera);
 }   
