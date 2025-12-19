@@ -23,7 +23,7 @@ function updateFixed(dt) {
         }
     }
 
-    const behaviourState = updateBehaviour(faces, emotionLabel);
+    const behaviourState = updateBehaviour(faces, emotionLabel, performance.now());
 
     updateRendering(dt, behaviourState);
     updateUI(behaviourState);

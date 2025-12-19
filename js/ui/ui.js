@@ -384,6 +384,9 @@ export function updateUI(behaviourState) {
             phaseStartTime = now;
             window.choicePhaseStart = null;
 
+            window.lockStartTime = now;
+            window.glanceUsedThisLock = false;
+
             choiceArmed = false;
             neutralSince = null;
             candidateEmotion = "neutral";
@@ -413,7 +416,22 @@ export function updateUI(behaviourState) {
         behaviourState.uiLocked = true;
         behaviourState.uiLockedEmotion = lockedEmotion;
 
+        if (!window.lockStartTime) window.lockStartTime = phaseStartTime;
+        const lockedElapsed = now - window.lockStartTime;
+
+        if (!window.glanceUsedThisLock) window.glanceUsedThisLock = false;
+
+        if (!window.glanceUsedThisLock && lockedElapsed >= 4500 && lockedElapsed <= 7000) {
+            const chance = 0.6;
+            if (Math.random() < chance) {
+                behaviourState.requestGlance = true;
+                window.glanceUsedThisLock = true;
+            }
+        }
+
         if (now - phaseStartTime >= EMOTION_LOCK_MS) {
+            window.lockStartTime = null;
+            window.glanceUsedThisLock = false;
             phase = "choice";
             phaseStartTime = now;
 

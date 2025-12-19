@@ -1,5 +1,10 @@
 import { updateIdleBehaviour } from "./idle.js";
 
+const STICKY_SWITCH_FRAMES = 45;
+const SWITCH_MARGIN = 0.25;
+const CENTER_WEIGHT = 0.0;
+const SIZE_WEIGHT = 1.0;
+
 let behaviourState = {
     mode: "idle",                 // idle or tracking
     targetCoords: { x: 0, y: 0 }, // coordinates the eyeball wants to look at
@@ -32,6 +37,54 @@ function applyEmotionPreset(state) {
     state.jitterStrength = preset.jitterStrength;
 }
 
+function scoreFace(face) {
+    const cx = face.x + face.width / 2;
+    const cy = face.y + face.height / 2;
+
+    const dx = cx - 0.5;
+    const dy = cy - 0.5;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+
+    const centerScore = 1 - Math.min(1, dist / 0.7);
+    const area = face.width * face.height;
+    const sizeScore = Math.min(1, area / 0.12);
+
+    return CENTER_WEIGHT * centerScore + SIZE_WEIGHT * sizeScore;
+}
+
+function pickPrimaryIdx(faces) {
+    let bestIdx = -1;
+    let bestScore = -Infinity;
+
+    for (let i = 0; i < faces.length; i++) {
+        const score = scoreFace(faces[i]);
+        if (score > bestScore) {
+            bestScore = score;
+            bestIdx = i;
+        }
+    }
+    
+    return { bestIdx, bestScore };
+
+}
+
+function pickSecondaryIdx(faces, primaryIdx) {
+    let bestIdx = -1;
+    let bestScore = -Infinity;
+
+    for (let i = 0; i < faces.length; i++) {
+        if (i === primaryIdx) continue;
+        const score = scoreFace(faces[i]);
+        if (score > bestScore) {
+            bestScore = score;
+            bestIdx = i;
+        }
+    }
+
+    return bestIdx;
+
+}
+
 // pretty self explanatory really
 let hadFaceLastFrame = false;
 // when target disappears don't instantly wander, wait
@@ -60,13 +113,20 @@ export function initBehaviour() {
         uiLockedEmotion: "neutral",
         emotion: "neutral",
 
+        primaryTargetIdx: -1,
+        primaryScore: 0,
+        switchCandidateIdx: -1,
+        switchCandidateFrames: 0,
+        glanceUntilMs: 0,
+        glanceTargetIdx: -1,
+        requestGlance: false,
     };
     hadFaceLastFrame = false;
     console.log("Behaviour initialized:", behaviourState);
 }
 
 // updates the eyeball's emotional state, choose target, not entirely sure yet
-export function updateBehaviour(faces, emotionLabel) {
+export function updateBehaviour(faces, emotionLabel, nowMs) {
     const safeFaces = faces || [];
     const numFaces = safeFaces.length;
 
@@ -128,28 +188,56 @@ export function updateBehaviour(faces, emotionLabel) {
     behaviourState.numFaces = numFaces;
     behaviourState.noFaceFrames = 0; // reset no face counter
 
-    let targetIdx = behaviourState.currentTargetIdx;
+    const { bestIdx, bestScore } = pickPrimaryIdx(safeFaces);
 
-    // if no valid target yet, pick one
-    if (targetIdx < 0 || targetIdx >= numFaces) {
-        targetIdx = 0;                 // pick first face for now
-        behaviourState.lockFrames = 0; // reset lock timer
+    if (behaviourState.primaryTargetIdx < 0 || behaviourState.primaryTargetIdx >= numFaces) {
+        behaviourState.primaryTargetIdx = bestIdx;
+        behaviourState.primaryScore = bestScore;
+        behaviourState.switchCandidateIdx = -1;
+        behaviourState.switchCandidateFrames = 0;
     } else {
-        behaviourState.lockFrames += 1;
+        const currentIdx = behaviourState.primaryTargetIdx;
+        const currentScore = scoreFace(safeFaces[currentIdx]);
+
+        if (bestIdx !== currentIdx && bestScore > currentScore + SWITCH_MARGIN) {
+            if (behaviourState.switchCandidateIdx !== bestIdx) {
+                behaviourState.switchCandidateIdx = bestIdx;
+                behaviourState.switchCandidateFrames = 1;
+            } else {
+                behaviourState.switchCandidateFrames += 1;
+            }
+
+            if (behaviourState.switchCandidateFrames >= STICKY_SWITCH_FRAMES) {
+                behaviourState.primaryTargetIdx = bestIdx;
+                behaviourState.primaryScore = bestScore;
+                behaviourState.switchCandidateIdx = -1;
+                behaviourState.switchCandidateFrames = 0;
+            }
+        } else {
+            behaviourState.switchCandidateIdx = -1;
+            behaviourState.switchCandidateFrames = 0;
+            behaviourState.primaryScore = currentScore;
+        }
     }
 
-    // simple logic for switching between targets, update later
-    if (behaviourState.lockFrames > MAX_LOCK_FRAMES && numFaces > 1) {
-        // just cycle to the next face for now
-        targetIdx = (targetIdx + 1) % numFaces;
-        behaviourState.lockFrames = 0;
+    if (behaviourState.requestGlance && numFaces > 1) {
+        const secondaryIdx = pickSecondaryIdx(safeFaces, behaviourState.primaryTargetIdx);
+        if (secondaryIdx >= 0) {
+            behaviourState.glanceTargetIdx = secondaryIdx;
+            behaviourState.glanceUntilMs = nowMs + 1000;
+        }
+        behaviourState.requestGlance = false;
     }
 
-    // chosen target idx
-    behaviourState.currentTargetIdx = targetIdx;
+    let lookIdx = behaviourState.primaryTargetIdx;
 
-    // just pick first face in array, update later  
-    const primaryFace = safeFaces[targetIdx];
+    if (behaviourState.glanceUntilMs > nowMs && 
+        behaviourState.glanceTargetIdx >= 0 &&
+        behaviourState.glanceTargetIdx < numFaces) {
+        lookIdx = behaviourState.glanceTargetIdx;
+    }
+
+    const primaryFace = safeFaces[lookIdx];
 
     // face center in normalized video space
     const centerX = primaryFace.x + primaryFace.width / 2;
