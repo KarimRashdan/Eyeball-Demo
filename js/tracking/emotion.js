@@ -8,6 +8,162 @@ let lastEmotion = null;
 
 const EMOTION_MODEL_PATH = "/models/face_landmarker.task";
 
+const BASELINE_FRAMES = 45;
+const BASELINE_MAX_VALUE = 1.0;
+
+const EMA_ALPHA = 0.22;
+
+const MIN_SCORE = 0.25;
+const MIN_GAP = 0.08;
+
+const SWITCH_GAP = 0.06;
+
+const CLAMP_SCORES_TO_ZERO = true;
+
+let baselineLocked = false;
+let baselineCount = 0;
+const baselineMean = new Map();
+const ema = new Map();
+
+let lastDecision = { label: "neutral", score: 0};
+
+function clamp01(t) {
+    return Math.max(0, Math.min(1, t));
+}
+
+function safeNowMs(time) {
+    if (typeof time === "function") return time();
+    if (typeof time === "number") return time;
+    return performance.now();
+}
+
+function categoriesToRawMap(blendshapes) {
+    const m = new Map();
+    for (const c of blendshapes) {
+        m.set(c.categoryName, clamp01(c.score ?? 0, 0, BASELINE_MAX_VALUE));
+    }
+    return m;
+}
+
+function updateBaseline(rawMap) {
+    baselineCount++;
+    for (const [name, value] of rawMap.entries()) {
+        const prevMean = baselineMean.get(name) ?? 0;
+        const newMean = prevMean + (value - prevMean) / baselineCount;
+        baselineMean.set(name, newMean);
+    }
+
+    if (baselineCount >= BASELINE_FRAMES) {
+        baselineLocked = true;
+    }
+}
+
+function getBaseline(name) {
+    if (!baselineLocked) return 0;
+    return baselineMean.get(name) ?? 0;
+}
+
+function updateEMA(name, value) {
+    const prevEma = ema.get(name);
+    if (prevEma === undefined) {
+        ema.set(name, value);
+        return value;
+    }
+    const newEma = EMA_ALPHA * value + (1 - EMA_ALPHA) * prevEma;
+    ema.set(name, newEma);
+    return newEma;
+}
+
+function getSmoothedCoeff(map, name) {
+    const rawValue = map.get(name) ?? 0;
+    const baseline = getBaseline(name);
+    const calibratedValue = clamp01(rawValue - baseline, 0, 1);
+    return updateEMA(name, calibratedValue);
+}
+
+function classifyEmotionSmoothed(get) {
+    // https://ai.google.dev/edge/mediapipe/solutions/vision/face_landmarker/web_js
+    const smileL = get("mouthSmileLeft");
+    const smileR = get("mouthSmileRight");
+    const cheekSquintL = get("cheekSquintLeft");
+    const cheekSquintR = get("cheekSquintRight");
+    const mouthOpen = get("jawOpen");
+    const eyeWideL = get("eyeWideLeft");
+    const eyeWideR = get("eyeWideRight");
+    const browDownL = get("browDownLeft");
+    const browDownR = get("browDownRight");
+    const browUpL = get("browOuterUpLeft");
+    const browUpR = get("browOuterUpRight");
+    const noseSneerL = get("noseSneerLeft");
+    const noseSneerR = get("noseSneerRight");
+    const frownL = get("mouthFrownLeft");
+    const frownR = get("mouthFrownRight");
+    const eyeSquintL = get("eyeSquintLeft");
+    const eyeSquintR = get("eyeSquintRight");
+    const browInnerUp = get("browInnerUp");
+    const mouthPucker = get("mouthPucker");
+
+    let happyScore = (smileL + smileR) * 0.6 + (cheekSquintL + cheekSquintR) * 0.4;
+    let surprisedScore = (eyeWideL + eyeWideR) * 0.3 + mouthOpen * 0.7 - (frownL + frownR) * 0.7;
+    let angryScore = ((browDownL + browDownR)) * 0.7 + ((noseSneerL + noseSneerR)) * 0.2 + ((eyeSquintL + eyeSquintR)) * 0.1;
+    let sadScore = mouthPucker * 0.1 + browInnerUp * 0.4 + ((frownL + frownR)) * 0.5 - mouthOpen * 0.7 - (eyeWideL + eyeWideR) * 0.2;
+
+    if (CLAMP_SCORES_TO_ZERO) {
+        happyScore = Math.max(0, happyScore);
+        surprisedScore = Math.max(0, surprisedScore);
+        angryScore = Math.max(0, angryScore);
+        sadScore = Math.max(0, sadScore);
+    }
+
+    const emotions = [
+        { label: "happy", score: happyScore },
+        { label: "surprised", score: surprisedScore },
+        { label: "angry", score: angryScore },
+        { label: "sad", score: sadScore },
+    ];
+
+    emotions.sort((a, b) => b.score - a.score);
+
+    const best = emotions[0];
+    const secondBest = emotions[1];
+
+    const gap = best.score - (secondBest?.score ?? 0);
+    if (best.score < MIN_SCORE || gap < MIN_GAP) {
+        return {
+            label: "neutral",
+            score: 0,
+            best,
+            secondBest,
+            gap,
+            emotions,
+        };
+    }
+
+    if (lastDecision.label !== "neutral" && best.label !== lastDecision.label) {
+        if (best.score < lastDecision.score + SWITCH_GAP) {
+            return {
+                label: lastDecision.label,
+                score: lastDecision.score,
+                best,
+                secondBest,
+                gap,
+                emotions,
+                keptPrevious: true,
+            };
+        }
+    }
+
+    return {
+        label: best.label,
+        score: best.score,
+        best,
+        secondBest,
+        gap,
+        emotions,
+    };
+}
+
+
 // check if ready
 export function emotionDetectorReady() {
     return !!faceLandmarkerInstance;
@@ -23,9 +179,7 @@ export async function initEmotionDetector() {
     );
 
     // create landmarker instance
-    faceLandmarkerInstance = await FaceLandmarker.createFromOptions(
-        vision, 
-        {
+    faceLandmarkerInstance = await FaceLandmarker.createFromOptions(vision, {
             baseOptions: {
                 modelAssetPath: EMOTION_MODEL_PATH,
                 delegate: "GPU",
@@ -34,72 +188,25 @@ export async function initEmotionDetector() {
             // blendshapes for emotions
             outputFaceBlendshapes: true,
             numFaces: 1,
-        },
-    );
+    });
+
+    resetEmotionState();
 
     console.log("Emotion detector initialized");
 
 }
 
-// get the score for a given blendhspe name
-function getCoeff(blendshapes, name) {
-    const found = blendshapes.find((c) => c.categoryName === name);
-    return found ? found.score : 0;
+export function resetEmotionState() {
+    lastEmotion = {label: "neutral", blendshapes: [], debug: null};
+
+    baselineLocked = false;
+    baselineCount = 0;
+    baselineMean.clear();
+
+    ema.clear();
+
+    lastDecision = { label: "neutral", score: 0};
 }
-
-// map blendshapes to emotion labels
-function classifyEmotion(blendshapes) {
-    // https://ai.google.dev/edge/mediapipe/solutions/vision/face_landmarker/web_js
-    const smileL = getCoeff(blendshapes, "mouthSmileLeft");
-    const smileR = getCoeff(blendshapes, "mouthSmileRight");
-    const cheekSquintL = getCoeff(blendshapes, "cheekSquintLeft");
-    const cheekSquintR = getCoeff(blendshapes, "cheekSquintRight");
-    const mouthOpen = getCoeff(blendshapes, "jawOpen");
-    const eyeWideL = getCoeff(blendshapes, "eyeWideLeft");
-    const eyeWideR = getCoeff(blendshapes, "eyeWideRight");
-    const browDownL = getCoeff(blendshapes, "browDownLeft");
-    const browDownR = getCoeff(blendshapes, "browDownRight");
-    const browUpL = getCoeff(blendshapes, "browOuterUpLeft");
-    const browUpR = getCoeff(blendshapes, "browOuterUpRight");
-    const noseSneerL = getCoeff(blendshapes, "noseSneerLeft");
-    const noseSneerR = getCoeff(blendshapes, "noseSneerRight");
-    const frownL = getCoeff(blendshapes, "mouthFrownLeft");
-    const frownR = getCoeff(blendshapes, "mouthFrownRight");
-    const eyeSquintL = getCoeff(blendshapes, "eyeSquintLeft");
-    const eyeSquintR = getCoeff(blendshapes, "eyeSquintRight");
-    const browInnerUp = getCoeff(blendshapes, "browInnerUp");
-    const mouthPucker = getCoeff(blendshapes, "mouthPucker");
-
-    // UPDATE THESE AND ADD NEW ONES LATER
-    const happyScore = (smileL + smileR) * 0.6 + (cheekSquintL + cheekSquintR) * 0.4;
-    //const surprisedScore = (eyeWideL + eyeWideR) * 0.3 + mouthOpen * 0.5 + (browUpL + browUpR) * 0.2;
-    const surprisedScore = (eyeWideL + eyeWideR) * 0.3 + mouthOpen * 0.7 - (frownL + frownR) * 0.7;
-    const angryScore = ((browDownL + browDownR)) * 0.7 + ((noseSneerL + noseSneerR)) * 0.2 + ((eyeSquintL + eyeSquintR)) * 0.1;
-    const sadScore = mouthPucker * 0.1 + browInnerUp * 0.4 + ((frownL + frownR)) * 0.5 - mouthOpen * 0.7 - (eyeWideL + eyeWideR) * 0.2;
-
-    const emotions = [
-        { label: "happy", score: happyScore },
-        { label: "surprised", score: surprisedScore },
-        { label: "angry", score: angryScore },
-        { label: "sad", score: sadScore },
-    ];
-
-    // pick best scoring emotion
-    let best = { label: "neutral", score: 0 };
-    for (const emotion of emotions) {
-        if (emotion.score > best.score) best = emotion;
-    }
-
-    // ADJUST AFTER TESTING ---------------------------------
-    const THRESHOLD = 0.34;
-    if (best.score < THRESHOLD) {
-        return "neutral";
-    }
-
-    return best.label;
-
-}
-
 
 export function updateEmotion(videoElement, time) {
     if (!faceLandmarkerInstance || !videoElement) return null;
@@ -108,30 +215,44 @@ export function updateEmotion(videoElement, time) {
         return lastEmotion;
     }
 
+    const timestampMs = safeNowMs(time);
+
     // call landmarker on current video frame
     // https://www.youtube.com/watch?v=NiK5wHce03Y
-    const result = faceLandmarkerInstance.detectForVideo(videoElement, time);
+    const result = faceLandmarkerInstance.detectForVideo(videoElement, timestampMs);
 
     if (!result || !result.faceBlendshapes || result.faceBlendshapes.length === 0) {
         // neutral emotion placeholder
-        lastEmotion = {
-            label: "neutral",
-            blendshapes: [],
-        };
+        lastDecision = { label: "neutral", score: 0};
+        lastEmotion = { label: "neutral", blendshapes: [], debug: { reason: "no_face" }};
         return lastEmotion;
     }
 
     // take first face's blendshapes
     const blendshapes = result.faceBlendshapes[0].categories || [];
+    const rawMap = categoriesToRawMap(blendshapes);
 
-    // raw blendshape values
-    //console.log("Blendshapes:", blendshapes);
+    if (!baselineLocked) {
+        updateBaseline(rawMap);
+    }
 
-    const label = classifyEmotion(blendshapes);
+    const get = (name) => getSmoothedCoeff(rawMap, name);
+
+    const decision = classifyEmotionSmoothed(get);
+
+    lastDecision = { label: decision.label, score: decision.score };
 
     lastEmotion = {
-        label,
+        label: decision.label,
         blendshapes,
+        debug: {
+            baselineLocked,
+            baselineCount,
+            best: decision.best,
+            secondBest: decision.secondBest,
+            gap: decision.gap,
+            keptPrevious: decision.keptPrevious ?? false,
+        },
     };
 
     return lastEmotion;

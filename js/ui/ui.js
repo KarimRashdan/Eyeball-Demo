@@ -1,3 +1,5 @@
+import { resetEmotionState } from "../tracking/emotion.js"
+
 let root = null;
 let panelElement = null;
 let debugElement = null;
@@ -220,6 +222,8 @@ export function updateUI(behaviourState) {
     if (hasFace && !hadFacePrev) {
         phase = "acquire";
         phaseStartTime = now;
+
+        resetEmotionState();
         returnNeutralStartTime = null;
 
         setEdgePromptsVisible(false);
