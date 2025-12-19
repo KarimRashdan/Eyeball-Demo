@@ -251,6 +251,9 @@ export function updateEmotion(videoElement, time) {
 
     if (!baselineLocked) {
         updateBaseline(rawMap);
+        lastDecision = { label: "neutral", score: 0};
+        lastEmotion = { label: "neutral", blendshapes, debug: { baselineLocked, baselineCount }};
+        return lastEmotion;
     }
 
     const get = (name) => getSmoothedCoeff(rawMap, name);
