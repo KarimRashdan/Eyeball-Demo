@@ -55,6 +55,11 @@ export function initBehaviour() {
         pupilScale: 1.0,
         eyeOpen: 1.0,
         jitterStrength: 0.0,
+
+        uiLocked: true,
+        uiLockedEmotion: "neutral",
+        emotion: "neutral",
+
     };
     hadFaceLastFrame = false;
     console.log("Behaviour initialized:", behaviourState);
@@ -69,8 +74,8 @@ export function updateBehaviour(faces, emotionLabel) {
     const rawEmotion = emotionLabel || "neutral";
     behaviourState.rawEmotion = rawEmotion;
 
-    const uiLocked = behaviourState.uiLocked === true;
-    const uiLockedEmotion = behaviourState.uiLockedEmotion || "neutral";
+    const uiLocked = (behaviourState.uiLocked ?? true);
+    const uiLockedEmotion = (behaviourState.uiLockedEmotion ?? "neutral");
 
     if (uiLocked) {
         if (uiLockedEmotion !== previousEmotion) {
