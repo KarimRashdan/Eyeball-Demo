@@ -13,8 +13,8 @@ const BASELINE_MAX_VALUE = 1.0;
 
 const EMA_ALPHA = 0.22;
 
-const MIN_SCORE = 0.25;
-const MIN_GAP = 0.08;
+const MIN_SCORE = 0.14;
+const MIN_GAP = 0.05;
 
 const SWITCH_GAP = 0.06;
 
@@ -103,10 +103,27 @@ function classifyEmotionSmoothed(get) {
     const browInnerUp = get("browInnerUp");
     const mouthPucker = get("mouthPucker");
 
-    let happyScore = (smileL + smileR) * 0.6 + (cheekSquintL + cheekSquintR) * 0.4;
-    let surprisedScore = (eyeWideL + eyeWideR) * 0.3 + mouthOpen * 0.7 - (frownL + frownR) * 0.7;
-    let angryScore = ((browDownL + browDownR)) * 0.7 + ((noseSneerL + noseSneerR)) * 0.2 + ((eyeSquintL + eyeSquintR)) * 0.1;
-    let sadScore = mouthPucker * 0.1 + browInnerUp * 0.4 + ((frownL + frownR)) * 0.5 - mouthOpen * 0.7 - (eyeWideL + eyeWideR) * 0.2;
+    const avg = (a, b) => (a + b) / 2;
+    const smile = avg(smileL, smileR);
+    const frown = avg(frownL, frownR);
+    const browDown = avg(browDownL, browDownR);
+    const browOuterUp = avg(browUpL, browUpR);
+    const eyeWide = avg(eyeWideL, eyeWideR);
+    const eyeSquint = avg(eyeSquintL, eyeSquintR);
+    const cheekSquint = avg(cheekSquintL, cheekSquintR);
+    const noseSneer = avg(noseSneerL, noseSneerR);
+
+    const sadGate2 = (0.25 + 0.75 * Math.max(frown, mouthPucker));
+    const gateScale = (g) => (0.35 + 0.65 * g);
+    const gateHappy = smile;
+    const gateSurprised = Math.max(eyeWide, mouthOpen);
+    const gateAngry = browDown;
+    const gateSad = Math.max(browInnerUp, frown);
+
+    let happyScore = gateScale(gateHappy) * (1.40*smile + 0.55*cheekSquint + 0.25*eyeSquint - 0.80*frown - 0.20*eyeWide);
+    let surprisedScore = gateScale(gateSurprised) * ( 1.25*mouthOpen + 0.95*eyeWide + 0.40*browOuterUp - 0.20*browInnerUp - 0.35*smile - 0.55*eyeSquint - 0.35*frown);
+    let angryScore = gateScale(gateAngry) * (1.30*browDown + 0.55*eyeSquint + 0.35*noseSneer + 0.20*frown - 0.50*smile - 0.60*browOuterUp);
+    let sadScore = sadGate2 * gateScale(gateSad) * (1.10*frown + 0.85*browInnerUp + 0.25*mouthPucker - 0.80*smile - 0.2*eyeWide - 0.55*mouthOpen);
 
     if (CLAMP_SCORES_TO_ZERO) {
         happyScore = Math.max(0, happyScore);
