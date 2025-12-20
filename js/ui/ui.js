@@ -24,7 +24,7 @@ const LABELS = {
 };
 
 // ADJUST ------------------------
-const INITIAL_NEUTRAL_MS = 4000; // make 7000 
+const INITIAL_NEUTRAL_MS = 7000; // make 7000 
 const EMOTION_LOCK_MS = 8000; ////////////////
 const CHOICE_DELAY_MS = 1500;
 const CHOSEN_LABEL_MS = 3000;
@@ -258,6 +258,7 @@ export function updateUI(behaviourState) {
     const ty = Number.isFinite(target.y) ? target.y.toFixed(2) : "NaN";
 
     // Delete later
+    /*
     debugElement.textContent =
         `phase=${phase}\n` +
         `mode=${mode}\n` +
@@ -267,6 +268,7 @@ export function updateUI(behaviourState) {
         `pupilScale=${pupilScale.toFixed(2)}\n` +
         `eyeOpen=${eyeOpen.toFixed(2)}\n` +
         `jitterStrength=${jitterStrength.toFixed(2)}`;
+    */
 
     if (!promptText) return;
 
