@@ -207,6 +207,8 @@ export function updateUI(behaviourState) {
     const now = performance.now();
     ensureChosenEmotionLabel();
 
+    behaviourState.uiPhase = phase;
+
     const mode = behaviourState.mode ?? "unknown";
     const numFaces = behaviourState.numFaces ?? 0;
     const emotion = behaviourState.emotion ?? "unknown";
@@ -216,7 +218,6 @@ export function updateUI(behaviourState) {
     const eyeOpen = behaviourState.eyeOpen ?? 1;
     const jitterStrength = behaviourState.jitterStrength ?? 0;
     const target = behaviourState.targetCoords ?? { x: 0, y: 0 };
-    const noFaceFrames = behaviourState.noFaceFrames ?? 0;
 
     const hasFace = (behaviourState.numFaces ?? 0) > 0;   
 

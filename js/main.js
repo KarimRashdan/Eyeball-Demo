@@ -9,24 +9,40 @@ let accumulator = 0;
 const FPS = 60;
 const FRAME_TIME = 1000 / FPS;
 
+// fps
+let lastEmotionUpdateMs = 0;
+let cachedEmotionLabel = "neutral";
+let lastUiPhase = "initial";
+
+const ENMOTION_UPDATE_INTERVAL_MS = 40;
+
 function updateFixed(dt) {
     const faces = getTargets();
-    let emotionLabel = "neutral";
+    const nowMs = performance.now();
+    let emotionLabel = cachedEmotionLabel;
     const video = document.getElementById("webcamVideo");
 
-    if (video && video.readyState >= 2) {
+    const phaseNeedsEmotion = (lastUiPhase === "choice" || lastUiPhase === "acquire");
+    const updateEmotionNow = phaseNeedsEmotion && (nowMs - lastEmotionUpdateMs) >= ENMOTION_UPDATE_INTERVAL_MS;
+
+    if (video && video.readyState >= 2 && updateEmotionNow) {
         try {
-            const emotionState = updateEmotion(video, performance.now());
-            if (emotionState?.label) emotionLabel = emotionState.label;
+            const emotionState = updateEmotion(video, nowMs);
+            if (emotionState?.label) {
+                cachedEmotionLabel = emotionState.label;
+                emotionLabel = cachedEmotionLabel;
+            }
+            lastEmotionUpdateMs = nowMs;
         } catch (error) {
             console.error("Error updating emotion:", error);
         }
     }
 
-    const behaviourState = updateBehaviour(faces, emotionLabel, performance.now());
+    const behaviourState = updateBehaviour(faces, emotionLabel, nowMs);
 
     updateRendering(dt, behaviourState);
     updateUI(behaviourState);
+    lastUiPhase = behaviourState.uiPhase ?? lastUiPhase;
 
 }
 
