@@ -14,7 +14,7 @@ let lastEmotionUpdateMs = 0;
 let cachedEmotionLabel = "neutral";
 let lastUiPhase = "initial";
 
-const ENMOTION_UPDATE_INTERVAL_MS = 40;
+const ENMOTION_UPDATE_INTERVAL_MS = 40; //////////////// go as high as you can
 
 function updateFixed(dt) {
     const faces = getTargets();
