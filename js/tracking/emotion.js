@@ -1,281 +1,198 @@
-import {
-    FaceLandmarker,
-    FilesetResolver,
-} from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0";
-
 import * as faceapi from "https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.15/dist/face-api.esm.js";
 
-let faceLandmarkerInstance = null;
-let lastEmotion = null;
+const EMOTION_FPS = 10; // run emotion detection at max 10 fps
+const MIN_INTERVAL_MS = 1000 / EMOTION_FPS; // convert to ms
 
-const EMOTION_MODEL_PATH = "/models/face_landmarker.task";
+const INPUT_WIDTH = 256; // downscale
+const TINYFACE_INPUT_SIZE = 224; // run actual face detector at this res
 
-const BASELINE_FRAMES = 45;
-const BASELINE_MAX_VALUE = 1.0;
+const HOLD_MS = 180; // hold last emotion for this long
+const SWITCH_MARGIN = 0.12; // new emotion mmust beat curret by this much
+const NEUTRAL_MARGIN = 0.10; // require neutral to be better than current by this much to swigh
 
-const EMA_ALPHA = 0.22;
+let ready = false;
+let lastEmotion = { label: "neutral", blendshapes: [], debug: { reason: "init" } };
+let lastDetectionStartMs = 0;
+let detectNow = false;
+let downscaledCanvas = null;
+let downscaledContext = null;
+let detectorOptions = null;
 
-const MIN_SCORE = 0.14;
-const MIN_GAP = 0.05;
-
-const SWITCH_GAP = 0.06;
-
-const CLAMP_SCORES_TO_ZERO = true;
-
-let baselineLocked = false;
-let baselineCount = 0;
-const baselineMean = new Map();
-const ema = new Map();
-
-let lastDecision = { label: "neutral", score: 0};
-
-function clamp01(t) {
-    return Math.max(0, Math.min(1, t));
-}
+let stableLabel = "neutral";
+let stableScore = 0;
+let stableSinceMs = 0;
 
 function safeNowMs(time) {
-    if (typeof time === "function") return time();
     if (typeof time === "number") return time;
+    if (typeof time === "function") return time();
     return performance.now();
 }
 
-function categoriesToRawMap(blendshapes) {
-    const m = new Map();
-    for (const c of blendshapes) {
-        m.set(c.categoryName, clamp01(c.score ?? 0, 0, BASELINE_MAX_VALUE));
+function createCanvas(video) {
+    if (!video || video.videowidth === 0 || video.videoHeight === 0) return;
+
+    const w = INPUT_WIDTH;
+    const h = Math.max(1, Math.round((video.videoHeight / video.videoWidth) * w));
+
+    if (!downscaledCanvas) {
+        downscaledCanvas = document.createElement("canvas");
+        downscaledCanvas.width = w;
+        downscaledCanvas.height = h;
+        downscaledContext = downscaledCanvas.getContext("2d");
+        return;
     }
-    return m;
+
+    if (downscaledCanvas.width !== w || downscaledCanvas.height !== h) {
+        downscaledCanvas.width = w;
+        downscaledCanvas.height = h;
+    }
 }
 
-function updateBaseline(rawMap) {
-    baselineCount++;
-    for (const [name, value] of rawMap.entries()) {
-        const prevMean = baselineMean.get(name) ?? 0;
-        const newMean = prevMean + (value - prevMean) / baselineCount;
-        baselineMean.set(name, newMean);
-    }
+function drawDownscaled(video) {
+    if (!downscaledCanvas || !downscaledContext) return null;
+    downscaledContext.drawImage(video, 0, 0, downscaledCanvas.width, downscaledCanvas.height);
+    return downscaledCanvas;
+}
 
-    if (baselineCount >= BASELINE_FRAMES) {
-        baselineLocked = true;
+function mapEmotionLabel(label) {
+    switch (label) {
+        case "happy":
+            return "happy";
+        case "sad":
+            return "sad";
+        case "angry":
+            return "angry";
+        case "surprised":
+            return "surprised";
+        case "neutral":
+            return "neutral";
+
+        // missing cases
+        case "fearful":
+            return "surprised";
+        case "disgusted":
+            return "angry";
+
+        default:
+            return "neutral";
     }
 }
 
-function getBaseline(name) {
-    if (!baselineLocked) return 0;
-    return baselineMean.get(name) ?? 0;
+function bestCandidate(expressions) {
+    let bestLabel = "neutral";
+    let bestScore = -Infinity;
+
+    for (const [label, score] of Object.entries(expressions)) {
+        const s = typeof score === "number" ? score : 0;
+        if (s > bestScore) {
+            bestScore = s;
+            bestLabel = label;
+        }
+    }
+    return { bestLabel, bestScore };
 }
 
-function updateEMA(name, value) {
-    const prevEma = ema.get(name);
-    if (prevEma === undefined) {
-        ema.set(name, value);
-        return value;
-    }
-    const newEma = EMA_ALPHA * value + (1 - EMA_ALPHA) * prevEma;
-    ema.set(name, newEma);
-    return newEma;
-}
+function stabilize(nowMs, candidate, candidateScore) {
+    const holdSwap = nowMs - stableSinceMs < HOLD_MS;
 
-function getSmoothedCoeff(map, name) {
-    const rawValue = map.get(name) ?? 0;
-    const baseline = getBaseline(name);
-    const calibratedValue = clamp01(rawValue - baseline, 0, 1);
-    return updateEMA(name, calibratedValue);
-}
-
-function classifyEmotionSmoothed(get) {
-    // https://ai.google.dev/edge/mediapipe/solutions/vision/face_landmarker/web_js
-    const smileL = get("mouthSmileLeft");
-    const smileR = get("mouthSmileRight");
-    const cheekSquintL = get("cheekSquintLeft");
-    const cheekSquintR = get("cheekSquintRight");
-    const mouthOpen = get("jawOpen");
-    const eyeWideL = get("eyeWideLeft");
-    const eyeWideR = get("eyeWideRight");
-    const browDownL = get("browDownLeft");
-    const browDownR = get("browDownRight");
-    const browUpL = get("browOuterUpLeft");
-    const browUpR = get("browOuterUpRight");
-    const noseSneerL = get("noseSneerLeft");
-    const noseSneerR = get("noseSneerRight");
-    const frownL = get("mouthFrownLeft");
-    const frownR = get("mouthFrownRight");
-    const eyeSquintL = get("eyeSquintLeft");
-    const eyeSquintR = get("eyeSquintRight");
-    const browInnerUp = get("browInnerUp");
-    const mouthPucker = get("mouthPucker");
-
-    const avg = (a, b) => (a + b) / 2;
-    const smile = avg(smileL, smileR);
-    const frown = avg(frownL, frownR);
-    const browDown = avg(browDownL, browDownR);
-    const browOuterUp = avg(browUpL, browUpR);
-    const eyeWide = avg(eyeWideL, eyeWideR);
-    const eyeSquint = avg(eyeSquintL, eyeSquintR);
-    const cheekSquint = avg(cheekSquintL, cheekSquintR);
-    const noseSneer = avg(noseSneerL, noseSneerR);
-
-    const sadGate2 = (0.25 + 0.75 * Math.max(frown, mouthPucker));
-    const gateScale = (g) => (0.35 + 0.65 * g);
-    const gateHappy = smile;
-    const gateSurprised = Math.max(eyeWide, mouthOpen);
-    const gateAngry = browDown;
-    const gateSad = Math.max(browInnerUp, frown);
-
-    let happyScore = gateScale(gateHappy) * (1.40*smile + 0.55*cheekSquint + 0.25*eyeSquint - 0.80*frown - 0.20*eyeWide);
-    let surprisedScore = gateScale(gateSurprised) * ( 1.25*mouthOpen + 0.95*eyeWide + 0.40*browOuterUp - 0.20*browInnerUp - 0.35*smile - 0.55*eyeSquint - 0.35*frown);
-    let angryScore = gateScale(gateAngry) * (1.30*browDown + 0.55*eyeSquint + 0.35*noseSneer + 0.20*frown - 0.50*smile - 0.60*browOuterUp);
-    let sadScore = sadGate2 * gateScale(gateSad) * 1.7 * (1.10*frown + 0.7*browInnerUp + 0.25*mouthPucker - 0.80*smile - 0.2*eyeWide - 0.55*mouthOpen);
-
-    if (CLAMP_SCORES_TO_ZERO) {
-        happyScore = Math.max(0, happyScore);
-        surprisedScore = Math.max(0, surprisedScore);
-        angryScore = Math.max(0, angryScore);
-        sadScore = Math.max(0, sadScore);
+    if (candidate === stableLabel) {
+        stableScore = candidateScore;
+        return stableLabel;
     }
 
-    const emotions = [
-        { label: "happy", score: happyScore },
-        { label: "surprised", score: surprisedScore },
-        { label: "angry", score: angryScore },
-        { label: "sad", score: sadScore },
-    ];
-
-    emotions.sort((a, b) => b.score - a.score);
-
-    const best = emotions[0];
-    const secondBest = emotions[1];
-
-    const gap = best.score - (secondBest?.score ?? 0);
-    if (best.score < MIN_SCORE || gap < MIN_GAP) {
-        return {
-            label: "neutral",
-            score: 0,
-            best,
-            secondBest,
-            gap,
-            emotions,
-        };
-    }
-
-    if (lastDecision.label !== "neutral" && best.label !== lastDecision.label) {
-        if (best.score < lastDecision.score + SWITCH_GAP) {
-            return {
-                label: lastDecision.label,
-                score: lastDecision.score,
-                best,
-                secondBest,
-                gap,
-                emotions,
-                keptPrevious: true,
-            };
+    // neutral flicker fix
+    if (candidate === "neutral" && stableLabel !== "neutral") {
+        if (candidateScore < stableScore + NEUTRAL_MARGIN) {
+            return stableLabel;
         }
     }
 
-    return {
-        label: best.label,
-        score: best.score,
-        best,
-        secondBest,
-        gap,
-        emotions,
-    };
+    if (holdSwap) {
+        if (candidateScore < stableScore + SWITCH_MARGIN) {
+            return stableLabel;
+        }
+    }
+
+    stableLabel = candidate;
+    stableScore = candidateScore;
+    stableSinceMs = nowMs;
+    return stableLabel;
 }
 
-
-// check if ready
 export function emotionDetectorReady() {
-    return !!faceLandmarkerInstance;
+    return !!ready;
 }
 
-// initialize emotion detector
 export async function initEmotionDetector() {
-    if (faceLandmarkerInstance) return; // already initialized
+    if (ready) return;
+    await faceapi.tf.ready();
+    await faceapi.tf.setBackend("webgl");
+    await faceapi.tf.ready();
 
-    // https://ai.google.dev/edge/mediapipe/solutions/vision/face_landmarker/web_js
-    const vision = await FilesetResolver.forVisionTasks(
-        "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0/wasm",
-    );
+    const MODEL_BASE = "https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.15/model";
+    await Promise.all([
+        faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_BASE),
+        faceapi.nets.faceExpressionNet.loadFromUri(MODEL_BASE),
+    ]);
 
-    // create landmarker instance
-    faceLandmarkerInstance = await FaceLandmarker.createFromOptions(vision, {
-            baseOptions: {
-                modelAssetPath: EMOTION_MODEL_PATH,
-                delegate: "GPU",
-            },
-            runningMode: "VIDEO",
-            // blendshapes for emotions
-            outputFaceBlendshapes: true,
-            numFaces: 1,
+    detectorOptions = new faceapi.TinyFaceDetectorOptions({
+        inputSize: TINYFACE_INPUT_SIZE,
     });
 
     resetEmotionState();
-
-    console.log("Emotion detector initialized");
-
+    ready = true;
+    console.log("Emotion detector ready");
 }
 
 export function resetEmotionState() {
-    lastEmotion = {label: "neutral", blendshapes: [], debug: null};
-
-    baselineLocked = false;
-    baselineCount = 0;
-    baselineMean.clear();
-
-    ema.clear();
-
-    lastDecision = { label: "neutral", score: 0};
+    lastEmotion = { label: "neutral", blendshapes: [], debug: { reason: "reset" } };
+    lastDetectionStartMs = 0;
+    detectNow = false;
+    stableLabel = "neutral";
+    stableScore = 0;
+    stableSinceMs = 0;
 }
 
-export function updateEmotion(videoElement, time) {
-    if (!faceLandmarkerInstance || !videoElement) return null;
+export function updateEmotion(video, time) {
+    if (!ready || !video) return lastEmotion;
+    if (video.readyState < 2 || video.videoWidth === 0 || video.videoHeight === 0) return lastEmotion;
+    const nowMs = safeNowMs(time);
 
-    if (videoElement.readyState < 2 || videoElement.videoWidth === 0 || videoElement.videoHeight === 0) {
+    // hold up a second there bubba
+    if (nowMs - lastDetectionStartMs < MIN_INTERVAL_MS) return lastEmotion;
+    if (detectNow) return lastEmotion;
+
+    detectNow = true;
+    lastDetectionStartMs = nowMs;
+
+    createCanvas(video);
+    const input = drawDownscaled(video);
+    if (!input) {
+        detectNow = false;
         return lastEmotion;
     }
 
-    const timestampMs = safeNowMs(time);
+    (async () => {
+        try {
+            const result = await faceapi.detectSingleFace(input, detectorOptions).withFaceExpressions();
+            if (!result || !result.expressions) {
+                const chosen = stabilize(nowMs, "neutral", 0);
+                lastEmotion = { label: chosen, blendshapes: [], debug: { reason: "no face" } };
+                return;
+            }
 
-    // call landmarker on current video frame
-    // https://www.youtube.com/watch?v=NiK5wHce03Y
-    const result = faceLandmarkerInstance.detectForVideo(videoElement, timestampMs);
+            const { bestLabel, bestScore } = bestCandidate(result.expressions);
+            const mappedCandidate = mapEmotionLabel(bestLabel);
+            const chosen = stabilize(nowMs, mappedCandidate, bestScore);
 
-    if (!result || !result.faceBlendshapes || result.faceBlendshapes.length === 0) {
-        // neutral emotion placeholder
-        lastDecision = { label: "neutral", score: 0};
-        lastEmotion = { label: "neutral", blendshapes: [], debug: { reason: "no_face" }};
-        return lastEmotion;
-    }
-
-    // take first face's blendshapes
-    const blendshapes = result.faceBlendshapes[0].categories || [];
-    const rawMap = categoriesToRawMap(blendshapes);
-
-    if (!baselineLocked) {
-        updateBaseline(rawMap);
-        lastDecision = { label: "neutral", score: 0};
-        lastEmotion = { label: "neutral", blendshapes, debug: { baselineLocked, baselineCount }};
-        return lastEmotion;
-    }
-
-    const get = (name) => getSmoothedCoeff(rawMap, name);
-
-    const decision = classifyEmotionSmoothed(get);
-
-    lastDecision = { label: decision.label, score: decision.score };
-
-    lastEmotion = {
-        label: decision.label,
-        blendshapes,
-        debug: {
-            baselineLocked,
-            baselineCount,
-            best: decision.best,
-            secondBest: decision.secondBest,
-            gap: decision.gap,
-            keptPrevious: decision.keptPrevious ?? false,
-        },
-    };
+            lastEmotion = { label: chosen, blendshapes: [] };
+        } catch (error) {
+            console.error("Error during emotion detection:", error);
+            lastEmotion = {label: stableLabel, blendshapes: [], debug: { reason: "error" } };
+        } finally {
+            detectNow = false;
+        }
+    })();
 
     return lastEmotion;
 }

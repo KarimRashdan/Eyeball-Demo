@@ -16,7 +16,7 @@ let lastUiPhase = "initial";
 
 const ENMOTION_UPDATE_INTERVAL_MS = 40; //////////////// go as high as you can
 
-function updateFixed(dt) {
+async function updateFixed(dt) {
     const faces = getTargets();
     const nowMs = performance.now();
     let emotionLabel = cachedEmotionLabel;
@@ -72,10 +72,8 @@ async function startApp() {
     initRendering(canvas);
     initBehaviour();
     initUI(rootElement);
-
     initEmotionDetector();
     initTracking();
-
     requestAnimationFrame(mainLoop);
 }
 
