@@ -133,7 +133,7 @@
 
 .emotion-edge-prompt .prompt-line1 {
     font-family: Calibri, "Segoe UI", Arial, sans-serif;
-    font-size: 20px; 
+    font-size: clamp(30px, 4vw, 33px); 
     font-weight: 600;
     opacity: 0.75;
     line-height: 1.05;
