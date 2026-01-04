@@ -3,6 +3,8 @@ import {
     FilesetResolver,
 } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0";
 
+import * as faceapi from "https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.15/dist/face-api.esm.js";
+
 let faceLandmarkerInstance = null;
 let lastEmotion = null;
 
