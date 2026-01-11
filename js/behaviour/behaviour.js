@@ -1,7 +1,7 @@
 import { updateIdleBehaviour } from "./idle.js";
 
 const STICKY_SWITCH_FRAMES = 45;
-const SWITCH_MARGIN = 0.25;
+const SWITCH_MARGIN = 0.10;
 const CENTER_WEIGHT = 0.0;
 const SIZE_WEIGHT = 1.0;
 
@@ -132,7 +132,7 @@ export function updateBehaviour(faces, emotionLabel, nowMs) {
 
     const previousEmotion = behaviourState.emotion;
     const rawEmotion = emotionLabel || "neutral";
-    behaviourState.rawEmotion = rawEmotion;
+    behaviourState.emotion = rawEmotion;
 
     const uiLocked = (behaviourState.uiLocked ?? true);
     const uiLockedEmotion = (behaviourState.uiLockedEmotion ?? "neutral");
