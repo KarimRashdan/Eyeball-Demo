@@ -5,20 +5,7 @@ const SWITCH_MARGIN = 0.10;
 const CENTER_WEIGHT = 0.0;
 const SIZE_WEIGHT = 1.0;
 
-let behaviourState = {
-    mode: "idle",                 // idle or tracking
-    targetCoords: { x: 0, y: 0 }, // coordinates the eyeball wants to look at
-    numFaces: 0,                  // number of faces detected in current frame
-    emotion: "neutral",           // placeholder for emotional state
-    idleTarget: { x: 0, y: 0 },   // where to wander in idle mode
-    idleTimerFrames: 0,           // frames until next idle target change
-    noFaceFrames: 0,              // frames since last face detected
-    currentTargetIdx: -1,         // index of current target face being tracked
-    lockFrames: 0,                // frames to keep locked on current target face
-    pupilScale: 1.0,              // scale of the pupil based on emotion
-    eyeOpen: 1.0,                 // how open the eye is based on emotion
-    jitterStrength: 0.0,          // amount of jitter to apply based on emotion
-};
+let behaviourState = null;
 
 const EMOTION_PRESETS = {
     neutral:  { pupilScale: 1.0, eyeOpen: 1.0, jitterStrength: 0.0 },
@@ -68,23 +55,6 @@ function pickPrimaryIdx(faces) {
 
 }
 
-function pickSecondaryIdx(faces, primaryIdx) {
-    let bestIdx = -1;
-    let bestScore = -Infinity;
-
-    for (let i = 0; i < faces.length; i++) {
-        if (i === primaryIdx) continue;
-        const score = scoreFace(faces[i]);
-        if (score > bestScore) {
-            bestScore = score;
-            bestIdx = i;
-        }
-    }
-
-    return bestIdx;
-
-}
-
 // pretty self explanatory really
 let hadFaceLastFrame = false;
 // when target disappears don't instantly wander, wait
@@ -96,18 +66,18 @@ const LOST_FACE_GRACE_FRAMES = 80;
 // responsible for initializing eyeball's behavioural state
 export function initBehaviour() {
     behaviourState = {
-        mode: "idle",
-        targetCoords: { x: 0, y: 0 },
-        numFaces: 0,
-        emotion: "neutral",
-        idleTarget: { x: 0, y: 0 },
-        idleTimerFrames: 0,
-        noFaceFrames: 0,
-        currentTargetIdx: -1,
-        lockFrames: 0,
-        pupilScale: 1.0,
-        eyeOpen: 1.0,
-        jitterStrength: 0.0,
+        mode: "idle",                 // idle or tracking
+        targetCoords: { x: 0, y: 0 }, // coordinates the eyeball wants to look at
+        numFaces: 0,                  // number of faces detected in current frame
+        emotion: "neutral",           // placeholder for emotional state
+        idleTarget: { x: 0, y: 0 },   // where to wander in idle mode
+        idleTimerFrames: 0,           // frames until next idle target change
+        noFaceFrames: 0,              // frames since last face detected
+        currentTargetIdx: -1,         // index of current target face being tracked
+        lockFrames: 0,                // frames to keep locked on current target face
+        pupilScale: 1.0,              // scale of the pupil based on emotion
+        eyeOpen: 1.0,                 // how open the eye is based on emotion
+        jitterStrength: 0.0,          // amount of jitter to apply based on emotion
 
         uiLocked: true,
         uiLockedEmotion: "neutral",
@@ -117,9 +87,6 @@ export function initBehaviour() {
         primaryScore: 0,
         switchCandidateIdx: -1,
         switchCandidateFrames: 0,
-        glanceUntilMs: 0,
-        glanceTargetIdx: -1,
-        requestGlance: false,
     };
     hadFaceLastFrame = false;
     console.log("Behaviour initialized:", behaviourState);
@@ -220,22 +187,7 @@ export function updateBehaviour(faces, emotionLabel, nowMs) {
         }
     }
 
-    if (behaviourState.requestGlance && numFaces > 1) {
-        const secondaryIdx = pickSecondaryIdx(safeFaces, behaviourState.primaryTargetIdx);
-        if (secondaryIdx >= 0) {
-            behaviourState.glanceTargetIdx = secondaryIdx;
-            behaviourState.glanceUntilMs = nowMs + 1000;
-        }
-        behaviourState.requestGlance = false;
-    }
-
     let lookIdx = behaviourState.primaryTargetIdx;
-
-    if (behaviourState.glanceUntilMs > nowMs && 
-        behaviourState.glanceTargetIdx >= 0 &&
-        behaviourState.glanceTargetIdx < numFaces) {
-        lookIdx = behaviourState.glanceTargetIdx;
-    }
 
     const primaryFace = safeFaces[lookIdx];
 

@@ -94,11 +94,6 @@ function setEdgePromptsVisible(visible) {
 function updateEdgePromptTexts() {
     if (!promptTop) return;
 
-    const topLabel = LABELS[EDGE_EMOTIONS.top] ?? "Happy";
-    const bottomLabel = LABELS[EDGE_EMOTIONS.bottom] ?? "Sad";
-    const leftLabel = LABELS[EDGE_EMOTIONS.left] ?? "Surprised";
-    const rightLabel = LABELS[EDGE_EMOTIONS.right] ?? "Angry";
-
     function promptHTML(label, emotion) {
         return `<div class="prompt-line1">Try acting</div><div class="prompt-line2 emotion-${emotion}">${label}!</div>`;
     }
@@ -225,9 +220,6 @@ export function updateUI(behaviourState) {
     const emotion = behaviourState.emotion ?? "unknown";
     const displayEmotion = behaviourState.emotion ?? "neutral";
     const rawEmotion = behaviourState.rawEmotion ?? displayEmotion;
-    const pupilScale = behaviourState.pupilScale ?? 1;
-    const eyeOpen = behaviourState.eyeOpen ?? 1;
-    const jitterStrength = behaviourState.jitterStrength ?? 0;
     const target = behaviourState.targetCoords ?? { x: 0, y: 0 };
 
     const hasFace = (behaviourState.numFaces ?? 0) > 0;   
@@ -264,10 +256,7 @@ export function updateUI(behaviourState) {
         `mode=${mode}\n` +
         `numFaces=${numFaces}\n` +
         `target=(${tx}, ${ty})\n` +
-        `emotion=${emotion}\n` +
-        `pupilScale=${pupilScale.toFixed(2)}\n` +
-        `eyeOpen=${eyeOpen.toFixed(2)}\n` +
-        `jitterStrength=${jitterStrength.toFixed(2)}`;
+        `emotion=${emotion}`;
     */
 
     if (!promptText) return;
@@ -410,7 +399,6 @@ export function updateUI(behaviourState) {
             window.choicePhaseStart = null;
 
             window.lockStartTime = now;
-            window.glanceUsedThisLock = false;
 
             choiceArmed = false;
             neutralSince = null;
@@ -444,19 +432,8 @@ export function updateUI(behaviourState) {
         if (!window.lockStartTime) window.lockStartTime = phaseStartTime;
         const lockedElapsed = now - window.lockStartTime;
 
-        if (!window.glanceUsedThisLock) window.glanceUsedThisLock = false;
-
-        if (!window.glanceUsedThisLock && lockedElapsed >= 4500 && lockedElapsed <= 7000) {
-            const chance = 0.6;
-            if (Math.random() < chance) {
-                behaviourState.requestGlance = true;
-                window.glanceUsedThisLock = true;
-            }
-        }
-
         if (now - phaseStartTime >= EMOTION_LOCK_MS) {
             window.lockStartTime = null;
-            window.glanceUsedThisLock = false;
             phase = "choice";
             phaseStartTime = now;
 
