@@ -50,9 +50,7 @@ function pickPrimaryIdx(faces) {
             bestIdx = i;
         }
     }
-    
     return { bestIdx, bestScore };
-
 }
 
 // pretty self explanatory really
@@ -87,6 +85,8 @@ export function initBehaviour() {
         primaryScore: 0,
         switchCandidateIdx: -1,
         switchCandidateFrames: 0,
+
+        activeLookIdx: -1,
     };
     hadFaceLastFrame = false;
     console.log("Behaviour initialized:", behaviourState);
@@ -188,6 +188,7 @@ export function updateBehaviour(faces, emotionLabel, nowMs) {
     }
 
     let lookIdx = behaviourState.primaryTargetIdx;
+    behaviourState.activeLookIdx = lookIdx;
 
     const primaryFace = safeFaces[lookIdx];
 
