@@ -64,9 +64,9 @@ function startTrackingLoop() {
     requestAnimationFrame(processFrame);
 }
 
-// responsible for returning the target
+// responsible for returning the target for the eyeball to track
 export function getTargets() {
-    // returns an array of face targets, each target is a bounding box
+    // returns an array of face targets, each target is a  bb
     // [{ x, y, width, height }]
     if (hasWebcamError()) return [];
     return currentFaces;

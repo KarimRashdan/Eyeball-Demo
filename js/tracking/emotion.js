@@ -3,7 +3,7 @@ import * as faceapi from "https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.
 const EMOTION_FPS = 10; // run emotion detection at max 10 fps
 const MIN_INTERVAL_MS = 1000 / EMOTION_FPS; // convert to ms
 
-const ROI_OUTPUT_WIDTH = 256; 
+const INPUT_WIDTH = 256; // downscale
 const TINYFACE_INPUT_SIZE = 224; // run actual face detector at this res
 
 const HOLD_MS = 180; // hold last emotion for this long
@@ -14,8 +14,8 @@ let ready = false;
 let lastEmotion = { label: "neutral", blendshapes: [], debug: { reason: "init" } };
 let lastDetectionStartMs = 0;
 let detectNow = false;
-let bbCanvas = null;
-let bbCtx = null;
+let downscaledCanvas = null;
+let downscaledContext = null;
 let detectorOptions = null;
 
 let stableLabel = "neutral";
@@ -28,66 +28,30 @@ function safeNowMs(time) {
     return performance.now();
 }
 
-// expand the region of interest by a padding fraction
-function PadBB(bb, padFrac = 0.20) {
-    if (!bb) return null;
-    const cx = bb.x + bb.width * 0.5;
-    const cy = bb.y + bb.height * 0.5;
-    const w = bb.width * (1 + padFrac);
-    const h = bb.height * (1 + padFrac);
-    return {x: cx - w * 0.5, y: cy - h * 0.5, width: w, height: h };
-}
+function createCanvas(video) {
+    if (!video || video.videowidth === 0 || video.videoHeight === 0) return;
 
-// ensrue padded roi is inside the video
-function clampBB(bb, vw, vh) {
-    // convert to pixel coords
-    let sx = Math.round((bb.x ?? 0) * vw);
-    let sy = Math.round((bb.y ?? 0) * vh);
-    let sw = Math.round((bb.width ?? 0) * vw);
-    let sh = Math.round((bb.height ?? 0) * vh);
-    // ensure min size
-    sw = Math.max(1, sw);
-    sh = Math.max(1, sh);
-    // clamp to video bounds
-    sx = Math.max(0, Math.min(vw - 1, sx));
-    sy = Math.max(0, Math.min(vh - 1, sy));
-    const ex = Math.max(sx + 1, Math.min(vw, sx + sw));
-    const ey = Math.max(sy + 1, Math.min(vh, sy + sh));
+    const w = INPUT_WIDTH;
+    const h = Math.max(1, Math.round((video.videoHeight / video.videoWidth) * w));
 
-    sw = Math.max(1, ex - sx);
-    sh = Math.max(1, ey - sy);
-
-    return { sx, sy, sw, sh };
-}
-
-// create and store the canvas + resizing
-function ensureCanvas(outW, outH) {
-    if (!bbCanvas) {
-        bbCanvas = document.createElement("canvas");
-        bbCtx = bbCanvas.getContext("2d", { willReadFrequently: false });
+    if (!downscaledCanvas) {
+        downscaledCanvas = document.createElement("canvas");
+        downscaledCanvas.width = w;
+        downscaledCanvas.height = h;
+        downscaledContext = downscaledCanvas.getContext("2d");
+        return;
     }
-    if (bbCanvas.width !== outW) bbCanvas.width = outW;
-    if (bbCanvas.height !== outH) bbCanvas.height = outH;
+
+    if (downscaledCanvas.width !== w || downscaledCanvas.height !== h) {
+        downscaledCanvas.width = w;
+        downscaledCanvas.height = h;
+    }
 }
 
-function drawBB(video, bb) {
-    if (!video || video.readyState < 2) return null;
-    const vw = video.videoWidth;
-    const vh = video.videoHeight;
-    if (!vw || !vh) return null;
-    if (!bb) return null;
-
-    const paddedBB = PadBB(bb, 0.20);
-    const { sx, sy, sw, sh } = clampBB(paddedBB, vw, vh);
-    // preserve aspect ratio when fitting to ROI_OUTPUT_WIDTH
-    const outW = ROI_OUTPUT_WIDTH;
-    const outH  = Math.max(1, Math.round((sh / sw) * outW));
-
-    ensureCanvas(outW, outH);
-    bbCtx.clearRect(0, 0, outW, outH);
-    bbCtx.drawImage(video, sx, sy, sw, sh, 0, 0, outW, outH);
-
-    return bbCanvas;
+function drawDownscaled(video) {
+    if (!downscaledCanvas || !downscaledContext) return null;
+    downscaledContext.drawImage(video, 0, 0, downscaledCanvas.width, downscaledCanvas.height);
+    return downscaledCanvas;
 }
 
 function mapEmotionLabel(label) {
@@ -119,8 +83,9 @@ function bestCandidate(expressions) {
     let bestScore = -Infinity;
 
     for (const [label, score] of Object.entries(expressions)) {
-        if (score > bestScore) {
-            bestScore = score;
+        const s = typeof score === "number" ? score : 0;
+        if (s > bestScore) {
+            bestScore = s;
             bestLabel = label;
         }
     }
@@ -129,17 +94,19 @@ function bestCandidate(expressions) {
 
 function stabilize(nowMs, candidate, candidateScore) {
     const holdSwap = nowMs - stableSinceMs < HOLD_MS;
+
     if (candidate === stableLabel) {
         stableScore = candidateScore;
         return stableLabel;
     }
+
     // neutral flicker fix
     if (candidate === "neutral" && stableLabel !== "neutral") {
         if (candidateScore < stableScore + NEUTRAL_MARGIN) {
             return stableLabel;
         }
     }
-    
+
     if (holdSwap) {
         if (candidateScore < stableScore + SWITCH_MARGIN) {
             return stableLabel;
@@ -186,7 +153,7 @@ export function resetEmotionState() {
     stableSinceMs = 0;
 }
 
-export function updateEmotion(video, time, bb) {
+export function updateEmotion(video, time) {
     if (!ready || !video) return lastEmotion;
     if (video.readyState < 2 || video.videoWidth === 0 || video.videoHeight === 0) return lastEmotion;
     const nowMs = safeNowMs(time);
@@ -195,21 +162,15 @@ export function updateEmotion(video, time, bb) {
     if (nowMs - lastDetectionStartMs < MIN_INTERVAL_MS) return lastEmotion;
     if (detectNow) return lastEmotion;
 
-    // can't run face detection on nothing...
-    if (!bb) {
-        const chosen = stabilize(nowMs, "neutral", 0);
-        lastEmotion = { label: chosen, blendshapes: [], debug: { reason: "no bb" } };
-        return lastEmotion;
-    }
+    detectNow = true;
+    lastDetectionStartMs = nowMs;
 
-    const input = drawBB(video, bb);
+    createCanvas(video);
+    const input = drawDownscaled(video);
     if (!input) {
         detectNow = false;
         return lastEmotion;
     }
-
-    detectNow = true;
-    lastDetectionStartMs = nowMs;
 
     (async () => {
         try {
@@ -232,6 +193,7 @@ export function updateEmotion(video, time, bb) {
             detectNow = false;
         }
     })();
+
     return lastEmotion;
 }
 

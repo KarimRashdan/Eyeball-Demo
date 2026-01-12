@@ -25,7 +25,7 @@ const LABELS = {
 
 // ADJUST ------------------------
 const INITIAL_NEUTRAL_MS = 7000; // make 7000 
-const EMOTION_LOCK_MS = 8000; ////////////////
+const EMOTION_LOCK_MS = 7000; ////////////////
 const CHOICE_DELAY_MS = 1500;
 const CHOSEN_LABEL_MS = 3000;
 const NEUTRAL_ARM_MS = 300;

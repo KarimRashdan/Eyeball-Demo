@@ -19,25 +19,15 @@ const ENMOTION_UPDATE_INTERVAL_MS = 40; //////////////// go as high as you can
 async function updateFixed(dt) {
     const faces = getTargets();
     const nowMs = performance.now();
-    const video = document.getElementById("webcamVideo");
     let emotionLabel = cachedEmotionLabel;
-    const behaviourState = updateBehaviour(faces, emotionLabel, nowMs);
+    const video = document.getElementById("webcamVideo");
 
     const phaseNeedsEmotion = (lastUiPhase === "choice" || lastUiPhase === "acquire");
     const updateEmotionNow = phaseNeedsEmotion && (nowMs - lastEmotionUpdateMs) >= ENMOTION_UPDATE_INTERVAL_MS;
 
-    let roi = null;
-    if (faces && faces.length > 0) {
-        const idx = behaviourState.activeLookIdx ?? -1;
-        if (idx >= 0 && idx < faces.length) {
-            const f = faces[idx];
-            roi = { x: f.x, y: f.y, width: f.width, height: f.height}
-        }
-    }
-
     if (video && video.readyState >= 2 && updateEmotionNow) {
         try {
-            const emotionState = updateEmotion(video, nowMs, roi);
+            const emotionState = updateEmotion(video, nowMs);
             if (emotionState?.label) {
                 cachedEmotionLabel = emotionState.label;
                 emotionLabel = cachedEmotionLabel;
@@ -47,6 +37,8 @@ async function updateFixed(dt) {
             console.error("Error updating emotion:", error);
         }
     }
+
+    const behaviourState = updateBehaviour(faces, emotionLabel, nowMs);
 
     updateRendering(dt, behaviourState);
     updateUI(behaviourState);
