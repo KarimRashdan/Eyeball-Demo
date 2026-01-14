@@ -10,6 +10,14 @@ const HOLD_MS = 180; // hold last emotion for this long
 const SWITCH_MARGIN = 0.12; // new emotion mmust beat curret by this much
 const NEUTRAL_MARGIN = 0.10; // require neutral to be better than current by this much to swigh
 
+const EMOTION_THRESHOLDS = {
+    neutral: 0.0,
+    happy: 0.8,
+    sad: 0.5,
+    angry: 0.5,
+    surprised: 0.7,
+};
+
 let ready = false;
 let lastEmotion = { label: "neutral", blendshapes: [], debug: { reason: "init" } };
 let lastDetectionStartMs = 0;
@@ -58,25 +66,15 @@ function drawDownscaled(video) {
 
 function mapEmotionLabel(label) {
     switch (label) {
-        case "happy":
-            return "happy";
-        case "sad":
-            return "sad";
-        case "angry":
-            return "angry";
-        case "surprised":
-            return "surprised";
-        case "neutral":
-            return "neutral";
-
+        case "happy": return "happy";
+        case "sad": return "sad";
+        case "angry": return "angry";
+        case "surprised": return "surprised";
+        case "neutral": return "neutral";
         // missing cases
-        case "fearful":
-            return "surprised";
-        case "disgusted":
-            return "angry";
-
-        default:
-            return "neutral";
+        case "fearful": return "surprised";
+        case "disgusted": return "angry";
+        default: return "neutral";
     }
 }
 
@@ -189,6 +187,14 @@ export function updateEmotion(video, time) {
 
             const { bestLabel, bestScore } = bestCandidate(result.expressions);
             const mappedCandidate = mapEmotionLabel(bestLabel);
+            
+            const threshold = EMOTION_THRESHOLDS[mappedCandidate] ?? 0.65;
+             if (bestScore < threshold) {
+                const chosen = stabilize(nowMs, "neutral", bestScore);
+                lastEmotion = { label: chosen, blendshapes: [], debug: { reason: "low score", score: bestScore } };
+                return;
+            }
+
             const chosen = stabilize(nowMs, mappedCandidate, bestScore);
 
             lastEmotion = { label: chosen, blendshapes: [] };
