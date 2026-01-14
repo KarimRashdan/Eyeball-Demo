@@ -364,16 +364,12 @@ export function updateUI(behaviourState) {
 
         // arm after they come back to neutral, maybe adjust
         if (!choiceArmed) {
-            if (rawEmotion === "neutral") {
-                if (neutralSince == null) neutralSince = now;
+            if (neutralSince == null) neutralSince = now;
 
-                if ((now - neutralSince) >= NEUTRAL_ARM_MS) {
-                    choiceArmed = true;
-                    candidateEmotion = "neutral";
-                    candidateSince = null;
-                }
-            } else {
-                neutralSince = null;
+            if ((now - neutralSince) >= NEUTRAL_ARM_MS) {
+                choiceArmed = true;
+                candidateEmotion = "neutral";
+                candidateSince = null;
             }
             return;
         }
