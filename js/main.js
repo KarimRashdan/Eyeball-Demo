@@ -65,7 +65,6 @@ function mainLoop(currentTime) {
 }
 
 async function startApp() {
-    // autocompleted by Java IntelliSense
     const canvas = document.getElementById("eyeball-canvas");
     const rootElement = document.getElementById("ui-root");
 

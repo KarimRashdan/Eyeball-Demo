@@ -250,14 +250,14 @@ export function updateUI(behaviourState) {
     const ty = Number.isFinite(target.y) ? target.y.toFixed(2) : "NaN";
 
     // Delete later
-    /*
+    
     debugElement.textContent =
         `phase=${phase}\n` +
         `mode=${mode}\n` +
         `numFaces=${numFaces}\n` +
         `target=(${tx}, ${ty})\n` +
         `emotion=${emotion}`;
-    */
+    
 
     if (!promptText) return;
 
