@@ -2,7 +2,7 @@ import { initRendering, updateRendering} from "./rendering/rendering.js";
 import { initTracking, getTargets } from "./tracking/tracking.js";
 import { initBehaviour, updateBehaviour } from "./behaviour/behaviour.js";
 import { initUI, updateUI } from "./ui/ui.js";
-import { initEmotionDetector, updateEmotion } from "./tracking/emotion.js";
+import { initEmotionDetector, updateEmotion, resetEmotionState } from "./tracking/emotion.js";
 
 let lastTime = 0;
 let accumulator = 0;
@@ -42,8 +42,13 @@ async function updateFixed(dt) {
 
     updateRendering(dt, behaviourState);
     updateUI(behaviourState);
-    lastUiPhase = behaviourState.uiPhase ?? lastUiPhase;
-
+    const newUiPhase = behaviourState.uiPhase ?? lastUiPhase;
+    if (lastUiPhase !== "choice" && newUiPhase === "choice") {
+        resetEmotionState();
+        cachedEmotionLabel = "neutral";
+        lastEmotionUpdateMs = 0;
+    }
+    lastUiPhase = newUiPhase;
 }
 
 function mainLoop(currentTime) {

@@ -22,6 +22,8 @@ let stableLabel = "neutral";
 let stableScore = 0;
 let stableSinceMs = 0;
 
+let generation = 0;
+
 function safeNowMs(time) {
     if (typeof time === "number") return time;
     if (typeof time === "function") return time();
@@ -145,6 +147,7 @@ export async function initEmotionDetector() {
 }
 
 export function resetEmotionState() {
+    generation += 1;
     lastEmotion = { label: "neutral", blendshapes: [], debug: { reason: "reset" } };
     lastDetectionStartMs = 0;
     detectNow = false;
@@ -162,6 +165,8 @@ export function updateEmotion(video, time) {
     if (nowMs - lastDetectionStartMs < MIN_INTERVAL_MS) return lastEmotion;
     if (detectNow) return lastEmotion;
 
+    const myGen = generation;
+
     detectNow = true;
     lastDetectionStartMs = nowMs;
 
@@ -175,6 +180,7 @@ export function updateEmotion(video, time) {
     (async () => {
         try {
             const result = await faceapi.detectSingleFace(input, detectorOptions).withFaceExpressions();
+            if (myGen !== generation) return;
             if (!result || !result.expressions) {
                 const chosen = stabilize(nowMs, "neutral", 0);
                 lastEmotion = { label: chosen, blendshapes: [], debug: { reason: "no face" } };
@@ -188,8 +194,10 @@ export function updateEmotion(video, time) {
             lastEmotion = { label: chosen, blendshapes: [] };
         } catch (error) {
             console.error("Error during emotion detection:", error);
+            if (myGen !== generation) return;
             lastEmotion = {label: stableLabel, blendshapes: [], debug: { reason: "error" } };
         } finally {
+            if (myGen !== generation) return;
             detectNow = false;
         }
     })();
