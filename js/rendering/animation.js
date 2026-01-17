@@ -28,6 +28,7 @@ let state = {
 
     enterX: 3.0,
     exitX: -3.0,
+    outRadius: 0,
 
     baseYaw: 0,
     basePitch: 0,
@@ -125,6 +126,7 @@ export function beginTransition({
     state.transition = transition || pickTransitionForToKey(toKey);
 
     const outRadius = getApproxRadius(outgoingRoot);
+    state.outRadius = outRadius;
     const { enterX, exitX } = computeOffScreenX(camera, outgoingRoot.position.z, outRadius);
     state.enterX = enterX;
     state.exitX = exitX;
@@ -135,7 +137,8 @@ export function beginTransition({
         const incoming = root.clone(true);
 
         const inRadius = getApproxRadius(incoming);
-        const refined = computeOffScreenX(camera, state.outgoingStartPos.z, inRadius);
+        const maxRadius = Math.max(outRadius || 0, inRadius);
+        const refined = computeOffScreenX(camera, state.outgoingStartPos.z, maxRadius);
         state.enterX = refined.enterX;
         state.exitX = refined.exitX;
 
