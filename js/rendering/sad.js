@@ -1,9 +1,9 @@
 const SEG_TILT_DOWN = 0.22;
 const SEG_HOLD_DOWN = 0.12;
 const SEG_LOOK_RIGHT = 0.18;
-const SEG_HOLD_RIGHT = 0.12;
-const SEG_EXIT_RIGHT = 0.18;
-const SEG_ENTER_RIGHT = 0.18;
+const SEG_HOLD_RIGHT = 0.10;
+const SEG_EXIT_RIGHT = 0.15;
+const SEG_ENTER_RIGHT = 0.23;
 
 const SAD_PITCH_DOWN = 0.4;
 const LOOK_RIGHT_YAW = +1.05;
