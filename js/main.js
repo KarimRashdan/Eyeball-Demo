@@ -1,7 +1,7 @@
 import { initRendering, updateRendering} from "./rendering/rendering.js";
 import { initTracking, getTargets } from "./tracking/tracking.js";
 import { initBehaviour, updateBehaviour, setUiLock } from "./behaviour/behaviour.js";
-import { initUI, updateUI, hidePrompts } from "./ui/ui.js";
+import { initUI, updateUI, hidePrompts, showDisclaimer, shownDisclaimer } from "./ui/ui.js";
 import { initEmotionDetector, updateEmotion, resetEmotionState } from "./tracking/emotion.js";
 import { initSettingsUI, getMode, getMode1ModelKey } from "./ui/settings.js";
 
@@ -11,6 +11,7 @@ const FPS = 60;
 const FRAME_TIME = 1000 / FPS;
 
 let lastModeSeen = "mode1";
+let disclaimerActive = false;
 
 // webcam
 let previewCanvas = null;
@@ -186,10 +187,30 @@ async function updateFixed(dt) {
     let emotionLabel = cachedEmotionLabel;
     const video = document.getElementById("webcamVideo");
 
+    if (mode === "mode3" && disclaimerActive) {
+        emotionLabel = "neutral";
+        setUiLock(true, "neutral");
+        hidePrompts();
+        const behaviourState = updateBehaviour(faces, emotionLabel, nowMs);
+        drawWebcamBBs(faces, behaviourState?.primaryTargetIdx ?? -1);
+        updateRendering(dt, behaviourState);
+        lastModeSeen = mode;
+        return;
+    }
 
     if (mode === "mode3") {
         if (modeChanged) {
             setUiLock(true, "neutral");
+            if (!shownDisclaimer()) {
+                disclaimerActive = true;
+                showDisclaimer(() => {
+                    disclaimerActive = false;
+                    resetEmotionState();
+                    cachedEmotionLabel = "neutral";
+                    lastEmotionUpdateMs = 0;
+                    lastUiPhase = "initial";
+                });
+            }
         }
 
         const phaseNeedsEmotion = (lastUiPhase === "choice" || lastUiPhase === "acquire");

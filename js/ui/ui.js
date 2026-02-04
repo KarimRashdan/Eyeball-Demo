@@ -456,8 +456,61 @@ export function hidePrompts() {
     setPromptText("");
 
     if (chosenEmotionLabel) {
-        chosenEmotionLabel.classlist.remove("show");
+        chosenEmotionLabel.classList.remove("show");
         chosenEmotionLabel.style.display = "none";
         chosenEmotionLabel.innerHTML = "";
     }
+}
+
+let disclaimerOverlay = null;
+let disclaimerGen = false;
+
+export function shownDisclaimer() {
+    return disclaimerGen;
+}
+
+export function showDisclaimer(onContinue) {
+    if (disclaimerGen) {
+        if (typeof onContinue === "function") onContinue();
+        return;
+    }
+
+    if (!disclaimerOverlay) {
+        disclaimerOverlay = document.createElement("div");
+        disclaimerOverlay.id = "disclaimer-overlay";
+        disclaimerOverlay.innerHTML = `
+            <div class="disclaimer-card" role="dialog" aria-modal="true">
+                <div class="disclaimer-title">Expression Detection Mode</div>
+                <div class="disclaimer-text">
+                    This mode is currently a bit buggy and may behave inconsistently.
+                    <br><br>
+                    <strong>For best results:</strong>
+                    <ul class="disclaimer-list">
+                        <li>Try to be the only person visible in the webcam frame</li>
+                        <li>Try to hold a neutral expression until prompts appear</li>
+                    </ul>
+                </div>
+
+                <div class="disclaimer-actions">
+                    <button id="disclaimer-continue" class="disclaimer-button" type="button">
+                        Continue
+                    </button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(disclaimerOverlay);
+
+        const card = disclaimerOverlay.querySelector(".disclaimer-card");
+        card.addEventListener("click", (e) => e.stopPropagation());
+        disclaimerOverlay.addEventListener("click", (e) => e.stopPropagation());
+    }
+    disclaimerOverlay.style.display = "flex";
+
+    const btn = disclaimerOverlay.querySelector("#disclaimer-continue");
+    btn.onclick = () => {
+        disclaimerOverlay.style.display = "none";
+        disclaimerGen = true;
+        if (typeof onContinue === "function") onContinue();
+    };
 }

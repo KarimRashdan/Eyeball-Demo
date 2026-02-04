@@ -395,3 +395,63 @@
 #settings-overlay, #settings-panel, #settings-button {
     font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
 }
+
+#disclaimer-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(6px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    pointer-events: auto;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    z-index: 9999;
+}
+
+.disclaimer-card {
+    width: min(520px, calc(100vw - 48px));
+    background: rgba(18, 18, 18, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 16px;
+    padding: 18px 18px 14px;
+    color: white;
+    box-shadow: 0 16px 60px rgba(0, 0, 0, 0.55);
+}
+
+.disclaimer-title {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 10px;
+}
+
+.disclaimer-text {
+    font-size: 14px;
+    line-height: 1.5;
+    opacity: 0.9;
+}
+
+.disclaimer-list {
+    margin: 10px 0 0 18px;
+    padding: 0;
+}
+
+.disclaimer-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 14px;
+}
+
+.disclaimer-button {
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    background: rgba(255, 255, 255, 0.08);
+    color: white;
+    border-radius: 10px;
+    padding: 10px 14px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.disclaimer-button:hover {
+    background: rgba(255, 255, 255, 0.14);
+}
