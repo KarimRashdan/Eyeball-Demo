@@ -13,7 +13,7 @@
 }
 
 :root {
-    --webcamScale: 1;
+    --webcam-scale: 1;
 }
 
 #ui-root {
@@ -254,7 +254,7 @@
     z-index: 9998;
     background: #000;
 
-    transform: scale(var(--webcamScale));
+    transform: scale(var(--webcam-scale));
     transform-origin: bottom right;
 }
 

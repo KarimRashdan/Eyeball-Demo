@@ -5,8 +5,8 @@ let currentSettings = {
     mode: "mode1",
     model: "modelA",
 
-    modelScale: 1.0,
-    webcamScale: 1.0,
+    modelScale: 1.5,
+    webcamScale: 2.3,
     rotationAggressiveness: 1.0,
 };
 
@@ -157,17 +157,17 @@ export function initSettingsUI() {
             <div class="settings-slider">
                 <div class="settings-slider-row">
                     <div>Model scale</div>
-                    <div class="settings-slider-value" id="setting-admin-model-scale-value">1.00</div>
+                    <div class="settings-slider-value" id="setting-admin-model-scale-value">1.50</div>
                 </div>
-                <input id="setting-admin-model-scale" type="range" min="0.50" max="2.00" step="0.01" value="1.00" />
+                <input id="setting-admin-model-scale" type="range" min="0.30" max="2.50" step="0.01" value="1.50" />
             </div>
 
             <div class="settings-slider">
                 <div class="settings-slider-row">
                     <div>Webcam feed scale</div>
-                    <div class="settings-slider-value" id="setting-admin-webcam-scale-value">1.00</div>
+                    <div class="settings-slider-value" id="setting-admin-webcam-scale-value">2.30</div>
                 </div>
-                <input id="setting-admin-webcam-scale" type="range" min="0.50" max="2.00" step="0.01" value="1.00" />
+                <input id="setting-admin-webcam-scale" type="range" min="0.00" max="4.00" step="0.01" value="2.30" />
             </div>
 
             <div class="settings-slider">

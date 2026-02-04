@@ -15,6 +15,8 @@ let previewCanvas = null;
 let previewCtx = null;
 let previewVideoElement = null;
 let previewDpr = 1;
+let lastPreviewW = 0;
+let lastPreviewH = 0;   
 const PREVIEW_MIRRORED = true;
 
 // fps
@@ -41,10 +43,26 @@ function syncWebcamOverlaySize() {
     previewCanvas.width = Math.max(1, Math.round(rect.width * previewDpr));
     previewCanvas.height = Math.max(1, Math.round(rect.height * previewDpr));
     previewCtx.setTransform(previewDpr, 0, 0, previewDpr, 0, 0);
+    lastPreviewW = rect.width;
+    lastPreviewH = rect.height;
+}
+
+function ensureWebcamOverlaySize() {
+    if (!previewVideoElement || !previewCanvas || !previewCtx) return;
+    const rect = previewVideoElement.getBoundingClientRect();
+    const w = rect.width;
+    const h = rect.height;
+
+    if (Math.abs(w - lastPreviewW) > 0.5 || Math.abs(h - lastPreviewH) > 0.5) {
+        syncWebcamOverlaySize();
+    }
 }
 
 function drawWebcamBBs(faces, primaryIdx = -1) {
     if (!previewCtx || !previewVideoElement || !previewCanvas) return;
+
+    ensureWebcamOverlaySize();
+
     const rect = previewVideoElement.getBoundingClientRect();
     const w = rect.width;
     const h = rect.height;
@@ -52,31 +70,47 @@ function drawWebcamBBs(faces, primaryIdx = -1) {
     previewCtx.clearRect(0, 0, w, h);
     if (!faces || faces.length === 0) return;
 
-    const mapX = (xNorm, widthNorm) => {
-        if (!PREVIEW_MIRRORED) return xNorm * w;
-        return (1 - xNorm - widthNorm) * w;
+    const vidW = previewVideoElement.videoWidth;
+    const vidH = previewVideoElement.videoHeight;
+    if (!vidW || !vidH) return;
+
+    const coverScale = Math.max(w / vidW, h / vidH);
+    const drawnW = vidW * coverScale;
+    const drawnH = vidH * coverScale;
+    const offsetX = (drawnW - w) / 2;
+    const offsetY = (drawnH - h) / 2;
+
+    const toPreviewBox = (f) => {
+        const xDrawn = f.x * drawnW;
+        const yDrawn = f.y * drawnH;
+        const wDrawn = f.width * drawnW;
+        const hDrawn = f.height * drawnH;
+
+        let x = xDrawn - offsetX;
+        let y = yDrawn - offsetY;
+        const bw = wDrawn;
+        const bh = hDrawn;
+
+        if (PREVIEW_MIRRORED) {
+            x = w - (x + bw);
+        }
+
+        return { x, y, bw, bh };
     }
 
     previewCtx.lineWidth = 2;
     previewCtx.strokeStyle = "rgba(255,255,255,0.75)";
-    for (let i=0; i < faces.length; i++) {
-        const f = faces[i];
-        const x = mapX(f.x, f.width);
-        const y = f.y * h;
-        const bw = f.width * w;
-        const bh = f.height * h;
-        previewCtx.strokeRect(x, y, bw, bh);
+
+    for (let i = 0; i < faces.length; i++) {
+        const b = toPreviewBox(faces[i]);
+        previewCtx.strokeRect(b.x, b.y, b.bw, b.bh);
     }
 
     if (primaryIdx >= 0 && primaryIdx < faces.length) {
-        const f = faces[primaryIdx];
-        const x = mapX(f.x, f.width);
-        const y = f.y * h;
-        const bw = f.width * w;
-        const bh = f.height * h;
+        const b = toPreviewBox(faces[primaryIdx]);
         previewCtx.strokeStyle = "rgba(80, 255, 120, 0.95)";
         previewCtx.lineWidth = 3;
-        previewCtx.strokeRect(x, y, bw, bh);
+        previewCtx.strokeRect(b.x, b.y, b.bw, b.bh);
     }
 }
 
