@@ -21,7 +21,10 @@
     <div id="blink-overlay"></div>
     <div id="ui-root"></div>
     <!-- https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement/autoplay -->
-    <video id="webcamVideo" autoplay playsinline muted></video>
+    <div id="webcam-preview">
+        <video id="webcamVideo" autoplay playsinline muted></video>
+        <canvas id="webcam-overlay"></canvas>
+    </div>
 
     <script type="importmap">
     {
