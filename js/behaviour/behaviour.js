@@ -1,7 +1,7 @@
 import { updateIdleBehaviour } from "./idle.js";
 
-const STICKY_SWITCH_FRAMES = 45;
-const SWITCH_MARGIN = 0.10;
+const STICKY_SWITCH_FRAMES = 90;
+const SWITCH_MARGIN = 0.20;
 const CENTER_WEIGHT = 0.0;
 const SIZE_WEIGHT = 1.0;
 
