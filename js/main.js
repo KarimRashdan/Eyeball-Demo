@@ -60,6 +60,8 @@ function ensureWebcamOverlaySize() {
 
 function drawWebcamBBs(faces, primaryIdx = -1) {
     if (!previewCtx || !previewVideoElement || !previewCanvas) return;
+    previewCtx.font = "16px system-ui, sans-serif, Segoe UI, Roboto, Arial, -apple-system";
+    previewCtx.textBaseline = "bottom";
 
     ensureWebcamOverlaySize();
 
@@ -104,6 +106,23 @@ function drawWebcamBBs(faces, primaryIdx = -1) {
     for (let i = 0; i < faces.length; i++) {
         const b = toPreviewBox(faces[i]);
         previewCtx.strokeRect(b.x, b.y, b.bw, b.bh);
+
+        const conf = faces[i].confidence;
+        if (typeof conf === "number") {
+            const label = `${(conf * 100).toFixed(0)}% confidence`;
+            const tx = b.x;
+            const ty = Math.max(12, b.y - 4);
+
+            const padX = 4;
+            const padY = 2;
+            const textW = previewCtx.measureText(label).width;
+
+            previewCtx.fillStyle = "rgba(0, 0, 0, 0.55)";
+            previewCtx.fillRect(tx, ty - 12 - padY, textW + padX * 2, 12 + padY * 2);
+
+            previewCtx.fillStyle = "rgba(255, 255, 255, 0.95)";
+            previewCtx.fillText(label, tx + padX, ty);
+        }
     }
 
     if (primaryIdx >= 0 && primaryIdx < faces.length) {

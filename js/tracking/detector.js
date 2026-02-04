@@ -84,11 +84,14 @@ export async function detectFaces(videoElement, time) {
         const score = facingScore(detection, videoWidth);
         if (score < MIN_FACING_SCORE) continue;
 
+        const confidence = detection.categories?.[0]?.score ?? detection.score ?? detection.confidence ?? 0;;
+
         faces.push({
             x: box.originX / videoWidth,
             y: box.originY / videoHeight,
             width: box.width / videoWidth,
             height: box.height / videoHeight,
+            confidence: confidence,
         });
     }
 
