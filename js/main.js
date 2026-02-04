@@ -28,6 +28,41 @@ let lastUiPhase = "initial";
 
 const ENMOTION_UPDATE_INTERVAL_MS = 40; //////////////// go as high as you can
 
+// recycled content gobblegum inspired algorithm
+const MODE2_MODELS = ["neutral", "happy", "sad", "angry", "surprised"];
+const MODE2_CYCLE_INTERVAL_MS = 11000; ////////////////
+
+let mode2State = {
+    bag: [],
+    current: "neutral",
+    nextSwitchMs: 0,
+    last: null,
+};
+
+function shuffle(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+}
+
+function gobblegum(model = null) {
+    const bag = [...MODE2_MODELS];
+    shuffle(bag);
+    if (model && bag[0] === model && bag.length > 1) {
+        bag.push(bag.shift());
+    }
+    mode2State.bag = bag;
+}
+
+function initRound(nowMs, OSM) {
+    mode2State.last = null;
+    gobblegum(OSM);
+    mode2State.current = mode2State.bag.shift();
+    mode2State.nextSwitchMs = nowMs + MODE2_CYCLE_INTERVAL_MS;
+    mode2State.last = mode2State.current;
+}
+
 function initWebcamOverlay() {
     previewVideoElement = document.getElementById("webcamVideo");
     previewCanvas = document.getElementById("webcam-overlay");
@@ -181,9 +216,23 @@ async function updateFixed(dt) {
     }
 
     if (mode === "mode2") {
-        emotionLabel = "neutral";
-        setUiLock(true, "neutral");
         hidePrompts();
+        if (modeChanged) {
+            initRound(nowMs, cachedEmotionLabel);
+        } else {
+            if (nowMs >= mode2State.nextSwitchMs) {
+                if (mode2State.bag.length === 0) {
+                    gobblegum();
+                }
+
+                const next = mode2State.bag.shift();
+                mode2State.current = next;
+                mode2State.last = next;
+                mode2State.nextSwitchMs = nowMs + MODE2_CYCLE_INTERVAL_MS;
+            }
+        }
+        emotionLabel = mode2State.current;
+        setUiLock(true, emotionLabel);
     }
 
     const behaviourState = updateBehaviour(faces, emotionLabel, nowMs);

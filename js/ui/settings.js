@@ -140,40 +140,40 @@ export function initSettingsUI() {
             <h3>Mode selection</h3>
             <label class="settings-option">
                 <input type="radio" name="setting-mode" value="mode1">
-                <div>Mode 1 <span style="opacity:0.7">(manual model select)</span></div>
+                <div>Manual <span style="opacity:0.7">(choose your model)</span></div>
             </label>
 
             <div id="setting-mode1-suboptions" class="settings-suboptions">
                 <label class="settings-option">
                     <input type="radio" name="setting-model" value="modelA">
-                    <div>Model A</div>
+                    <div>Normal Eye</div>
                 </label>
                 <label class="settings-option">
                     <input type="radio" name="setting-model" value="modelB">
-                    <div>Model B</div>
+                    <div>Duck Norris</div>
                 </label>
                 <label class="settings-option">
                     <input type="radio" name="setting-model" value="modelC">
-                    <div>Model C</div>
+                    <div>Illusory Eye</div>
                 </label>
                 <label class="settings-option">
                     <input type="radio" name="setting-model" value="modelD">
-                    <div>Model D</div>
+                    <div>Demon Eye</div>
                 </label>
                 <label class="settings-option">
                     <input type="radio" name="setting-model" value="modelE">
-                    <div>Model E</div>
+                    <div>Bill Cipher</div>
                 </label>
             </div>
 
             <label class="settings-option">
                 <input type="radio" name="setting-mode" value="mode2">
-                <div>Mode 2</div>
+                <div>Shuffle Cycle</div>
             </label>
 
             <label class="settings-option">
                 <input type="radio" name="setting-mode" value="mode3">
-                <div>Mode 3</div>
+                <div>Expression Detection</div>
             </label>
         </div>
 

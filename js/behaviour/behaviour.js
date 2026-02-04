@@ -11,8 +11,8 @@ const EMOTION_PRESETS = {
     neutral:  { pupilScale: 1.0, eyeOpen: 1.0, jitterStrength: 0.0 },
     happy:    { pupilScale: 1.0, eyeOpen: 1.0, jitterStrength: 0.0 },
     sad:      { pupilScale: 1, eyeOpen: 1.0, jitterStrength: 0.0 },
-    angry:    { pupilScale: 1, eyeOpen: 1.0, jitterStrength: 0.45 },
-    surprised:{ pupilScale: 1, eyeOpen: 1.25, jitterStrength: 0.2 },
+    angry:    { pupilScale: 1, eyeOpen: 1.0, jitterStrength: 0.20 },
+    surprised:{ pupilScale: 1, eyeOpen: 1.25, jitterStrength: 0.15 },
 }
 
 function applyEmotionPreset(state) {
