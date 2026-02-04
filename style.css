@@ -271,8 +271,9 @@
     position: fixed;
     top: 14px;
     right: 14px;
-    width: 44px;
-    height: 44px;
+    width: 80px;
+    height: 80px;
+    font-size: 45px;
     border-radius: 12px;
     background: rgba(0, 0, 0, 0.35);
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
@@ -382,4 +383,8 @@
 
 .settings-btn-primary:hover {
     background: rgba(80, 255, 120, 0.22);
+}
+
+#settings-overlay, #settings-panel, #settings-button {
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
 }

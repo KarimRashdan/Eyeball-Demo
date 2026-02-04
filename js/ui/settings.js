@@ -42,6 +42,11 @@ function updateMode1Visibility() {
 
     const isMode1 = (draftSettings.mode === "mode1");
     mode1Block.style.display = isMode1 ? "block" : "none";
+
+    if (!isMode1) {
+        const modelInputs = settingsOverlayElement.querySelectorAll('input[name="setting-model"]');
+        modelInputs.forEach((el) => (el.checked = false));
+    }
 }
 
 export function initSettingsUI() {
@@ -129,10 +134,16 @@ export function initSettingsUI() {
         if (e.key === "Escape") closeSettings();
     });
 
-    settingsOverlayElement.querySelectorAll('input[name="settings-mode"]').forEach((el) => {
+    settingsOverlayElement.querySelectorAll('input[name="setting-mode"]').forEach((el) => {
         el.addEventListener("change", () => {
             draftSettings.mode = el.value;
+
+            if (draftSettings.mode !== "mode1") {
+                draftSettings.model = null;
+            }
+
             updateMode1Visibility();
+            syncSettingsUI();
         });
     });
 
