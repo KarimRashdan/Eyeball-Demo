@@ -92,6 +92,12 @@ export function initBehaviour() {
     console.log("Behaviour initialized:", behaviourState);
 }
 
+export function setUiLock(locked, lockedEmotion = "neutral") {
+    if (!behaviourState) return;
+    behaviourState.uiLocked = !!locked;
+    behaviourState.uiLockedEmotion = lockedEmotion || "neutral";
+}
+
 // updates the eyeball's emotional state, choose target, not entirely sure yet
 export function updateBehaviour(faces, emotionLabel, nowMs) {
     const safeFaces = faces || [];

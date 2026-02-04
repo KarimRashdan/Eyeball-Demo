@@ -12,8 +12,34 @@ let currentSettings = {
 
 let draftSettings = { ...currentSettings };
 
+const MODE1_MODEL_TO_KEY = {
+    modelA: "neutral",
+    modelB: "happy",
+    modelC: "sad",
+    modelD: "angry",
+    modelE: "surprised",
+};
+
+const SETTINGS_CHANGED_EVENT = "app-settings-changed";
+
 export function getCurrentSettings() {
     return { ...currentSettings };
+}
+
+export function getMode() {
+    return currentSettings.mode;
+}
+
+export function getMode1ModelKey() {
+    const model = currentSettings.model || "modelA";
+    return MODE1_MODEL_TO_KEY[model] ?? "neutral";
+}
+
+export function onSettingsChanged(handler) {
+    if (typeof handler !== "function") return () => {};
+    const wrapped = (e) => handler(e?.detail ?? getCurrentSettings());
+    window.addEventListener(SETTINGS_CHANGED_EVENT, wrapped);
+    return () => window.removeEventListener(SETTINGS_CHANGED_EVENT, wrapped);
 }
 
 export function getModelScale() {

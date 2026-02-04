@@ -444,3 +444,20 @@ export function updateUI(behaviourState) {
     lastPhase = phase;
     
 }
+
+export function hidePrompts() {
+    if (promptTop || promptBottom || promptLeft || promptRight) {
+        setEdgePromptsVisible(false);
+        [promptTop, promptRight, promptBottom, promptLeft].forEach((el) => {
+            if (el) el.style.display = "none";
+        });
+    }
+
+    setPromptText("");
+
+    if (chosenEmotionLabel) {
+        chosenEmotionLabel.classlist.remove("show");
+        chosenEmotionLabel.style.display = "none";
+        chosenEmotionLabel.innerHTML = "";
+    }
+}

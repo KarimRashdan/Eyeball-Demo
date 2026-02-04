@@ -1,14 +1,16 @@
 import { initRendering, updateRendering} from "./rendering/rendering.js";
 import { initTracking, getTargets } from "./tracking/tracking.js";
-import { initBehaviour, updateBehaviour } from "./behaviour/behaviour.js";
-import { initUI, updateUI } from "./ui/ui.js";
+import { initBehaviour, updateBehaviour, setUiLock } from "./behaviour/behaviour.js";
+import { initUI, updateUI, hidePrompts } from "./ui/ui.js";
 import { initEmotionDetector, updateEmotion, resetEmotionState } from "./tracking/emotion.js";
-import { initSettingsUI } from "./ui/settings.js";
+import { initSettingsUI, getMode, getMode1ModelKey } from "./ui/settings.js";
 
 let lastTime = 0;
 let accumulator = 0;
 const FPS = 60;
 const FRAME_TIME = 1000 / FPS;
+
+let lastModeSeen = "mode1";
 
 // webcam
 let previewCanvas = null;
@@ -136,23 +138,52 @@ function drawWebcamBBs(faces, primaryIdx = -1) {
 async function updateFixed(dt) {
     const faces = getTargets();
     const nowMs = performance.now();
+    const mode = getMode();
+
+    const modeChanged = (mode !== lastModeSeen);
+    if (modeChanged) {
+        resetEmotionState();
+        cachedEmotionLabel = "neutral";
+        lastEmotionUpdateMs = 0;
+        lastUiPhase = "initial";
+    }
+
     let emotionLabel = cachedEmotionLabel;
     const video = document.getElementById("webcamVideo");
 
-    const phaseNeedsEmotion = (lastUiPhase === "choice" || lastUiPhase === "acquire");
-    const updateEmotionNow = phaseNeedsEmotion && (nowMs - lastEmotionUpdateMs) >= ENMOTION_UPDATE_INTERVAL_MS;
 
-    if (video && video.readyState >= 2 && updateEmotionNow) {
-        try {
-            const emotionState = updateEmotion(video, nowMs);
-            if (emotionState?.label) {
-                cachedEmotionLabel = emotionState.label;
-                emotionLabel = cachedEmotionLabel;
-            }
-            lastEmotionUpdateMs = nowMs;
-        } catch (error) {
-            console.error("Error updating emotion:", error);
+    if (mode === "mode3") {
+        if (modeChanged) {
+            setUiLock(true, "neutral");
         }
+
+        const phaseNeedsEmotion = (lastUiPhase === "choice" || lastUiPhase === "acquire");
+        const updateEmotionNow = phaseNeedsEmotion && (nowMs - lastEmotionUpdateMs) >= ENMOTION_UPDATE_INTERVAL_MS;
+
+        if (video && video.readyState >= 2 && updateEmotionNow) {
+            try {
+                const emotionState = updateEmotion(video, nowMs);
+                if (emotionState?.label) {
+                    cachedEmotionLabel = emotionState.label;
+                    emotionLabel = cachedEmotionLabel;
+                }
+                lastEmotionUpdateMs = nowMs;
+            } catch (error) {
+                console.error("Error updating emotion:", error);
+            }
+        }
+    }
+
+    if (mode === "mode1") {
+        emotionLabel = getMode1ModelKey();
+        setUiLock(true, emotionLabel);
+        hidePrompts();
+    }
+
+    if (mode === "mode2") {
+        emotionLabel = "neutral";
+        setUiLock(true, "neutral");
+        hidePrompts();
     }
 
     const behaviourState = updateBehaviour(faces, emotionLabel, nowMs);
@@ -160,14 +191,18 @@ async function updateFixed(dt) {
     drawWebcamBBs(faces, behaviourState?.primaryTargetIdx ?? -1);
 
     updateRendering(dt, behaviourState);
-    updateUI(behaviourState);
-    const newUiPhase = behaviourState.uiPhase ?? lastUiPhase;
-    if (lastUiPhase !== "choice" && newUiPhase === "choice") {
-        resetEmotionState();
-        cachedEmotionLabel = "neutral";
-        lastEmotionUpdateMs = 0;
+
+    if (mode === "mode3") {
+        updateUI(behaviourState);
+        const newUiPhase = behaviourState.uiPhase ?? lastUiPhase;
+        if (lastUiPhase !== "choice" && newUiPhase === "choice") {
+            resetEmotionState();
+            cachedEmotionLabel = "neutral";
+            lastEmotionUpdateMs = 0;
+        }
+        lastUiPhase = newUiPhase;
     }
-    lastUiPhase = newUiPhase;
+    lastModeSeen = mode;
 }
 
 function mainLoop(currentTime) {
