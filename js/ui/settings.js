@@ -4,12 +4,35 @@ let settingsOverlayElement = null;
 let currentSettings = {
     mode: "mode1",
     model: "modelA",
+
+    modelScale: 1.0,
+    webcamScale: 1.0,
+    rotationAggressiveness: 1.0,
 };
 
 let draftSettings = { ...currentSettings };
 
 export function getCurrentSettings() {
     return { ...currentSettings };
+}
+
+export function getModelScale() {
+    const v = Number(currentSettings.modelScale);
+    return Number.isFinite(v) ? v : 1.0;
+}
+
+export function getWebcamScale() {
+    const v = Number(currentSettings.webcamScale);
+    return Number.isFinite(v) ? v : 1.0;
+}
+
+export function getRotationAggressiveness() {
+    const v = Number(currentSettings.rotationAggressiveness);
+    return Number.isFinite(v) ? v : 1.0;
+}
+
+function applyAdminSettings() {
+    document.documentElement.style.setProperty('--webcam-scale', String(getWebcamScale()));
 }
 
 function openSettings() {
@@ -31,6 +54,22 @@ function syncSettingsUI() {
 
     const modelInputs = settingsOverlayElement.querySelectorAll('input[name="setting-model"]');
     modelInputs.forEach((el) => (el.checked = (el.value === draftSettings.model)));
+
+    const modelScaleInput = settingsOverlayElement.querySelector("#setting-admin-model-scale");
+    const webcamScaleInput = settingsOverlayElement.querySelector("#setting-admin-webcam-scale");
+    const rotationAggressivenessInput = settingsOverlayElement.querySelector("#setting-admin-rotation-aggressiveness");
+
+    if (modelScaleInput) modelScaleInput.value = String(draftSettings.modelScale ?? 1.0);
+    if (webcamScaleInput) webcamScaleInput.value = String(draftSettings.webcamScale ?? 1.0);
+    if (rotationAggressivenessInput) rotationAggressivenessInput.value = String(draftSettings.rotationAggressiveness ?? 1.0);
+
+    const modelScaleValue = settingsOverlayElement.querySelector("#setting-admin-model-scale-value");
+    const webcamScaleValue = settingsOverlayElement.querySelector("#setting-admin-webcam-scale-value");
+    const rotationAggressivenessValue = settingsOverlayElement.querySelector("#setting-admin-rotation-aggressiveness-value");
+
+    if (modelScaleValue) modelScaleValue.textContent = Number(draftSettings.modelScale ?? 1.0).toFixed(2);
+    if (webcamScaleValue) webcamScaleValue.textContent = Number(draftSettings.webcamScale ?? 1.0).toFixed(2);
+    if (rotationAggressivenessValue) rotationAggressivenessValue.textContent = Number(draftSettings.rotationAggressiveness ?? 1.0).toFixed(2);
 
     updateMode1Visibility();
 }
@@ -114,7 +153,30 @@ export function initSettingsUI() {
 
         <div class="settings-section">
             <h3>Admin settings</h3>
-            <div style="opacity:0.7; font-size:13px;">(coming soon!!!)</div>
+
+            <div class="settings-slider">
+                <div class="settings-slider-row">
+                    <div>Model scale</div>
+                    <div class="settings-slider-value" id="setting-admin-model-scale-value">1.00</div>
+                </div>
+                <input id="setting-admin-model-scale" type="range" min="0.50" max="2.00" step="0.01" value="1.00" />
+            </div>
+
+            <div class="settings-slider">
+                <div class="settings-slider-row">
+                    <div>Webcam feed scale</div>
+                    <div class="settings-slider-value" id="setting-admin-webcam-scale-value">1.00</div>
+                </div>
+                <input id="setting-admin-webcam-scale" type="range" min="0.50" max="2.00" step="0.01" value="1.00" />
+            </div>
+
+            <div class="settings-slider">
+                <div class="settings-slider-row">
+                    <div>Rotation aggressiveness</div>
+                    <div class="settings-slider-value" id="setting-admin-rotation-aggressiveness-value">1.00</div>
+                </div>
+                <input id="setting-admin-rotation-aggressiveness" type="range" min="0.25" max="2.50" step="0.01" value="1.00" />
+            </div>
         </div>
 
         <div class="settings-actions">
@@ -156,9 +218,41 @@ export function initSettingsUI() {
     const cancelBtn = settingsOverlayElement.querySelector("#settings-cancel");
     cancelBtn.addEventListener("click", () => {
         draftSettings = { ...currentSettings };
-        console.log("[settings] applied:", currentSettings);
         closeSettings();
     });
 
+    const modelScaleElement = settingsOverlayElement.querySelector("#setting-admin-model-scale");
+    const webcamScaleElement = settingsOverlayElement.querySelector("#setting-admin-webcam-scale");
+    const rotationAggressivenessElement = settingsOverlayElement.querySelector("#setting-admin-rotation-aggressiveness");
+
+    if (modelScaleElement) {
+        modelScaleElement.addEventListener("input", () => {
+            draftSettings.modelScale = Number(modelScaleElement.value);
+            syncSettingsUI();
+        });
+    }
+
+    if (webcamScaleElement) {
+        webcamScaleElement.addEventListener("input", () => {
+            draftSettings.webcamScale = Number(webcamScaleElement.value);
+            syncSettingsUI();
+        });
+    }
+
+    if (rotationAggressivenessElement) {
+        rotationAggressivenessElement.addEventListener("input", () => {
+            draftSettings.rotationAggressiveness = Number(rotationAggressivenessElement.value);
+            syncSettingsUI();
+        });
+    }
+
+    const applyBtn = settingsOverlayElement.querySelector("#settings-apply");
+    applyBtn.addEventListener("click", () => {
+        currentSettings = { ...draftSettings };
+        applyAdminSettings();
+        closeSettings();
+    });
+
+    applyAdminSettings();
     syncSettingsUI();
 }

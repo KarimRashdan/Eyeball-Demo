@@ -1,6 +1,7 @@
 import * as THREE from "https://unpkg.com/three@0.181.2/build/three.module.js";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { beginTransition, updateTransition, completeTransition, isTransitionActive, getTransitionRoots, pickTransitionForToKey } from "./animation.js";
+import { getModelScale, getRotationAggressiveness } from "../ui/settings.js";
 
 let scene, camera, renderer;
 // root node of glTF eyeball model
@@ -251,8 +252,9 @@ export function updateRendering(deltaTime, behaviourState) {
     currentGazeY += (y - currentGazeY) * lerpAmount;
 
     // how far the eye is allowed to rotate (adjust later)
-    const MAX_YAW = config.maxYaw;
-    const MAX_PITCH = config.maxPitch;
+    const rotMul = getRotationAggressiveness();
+    const MAX_YAW = (config.maxYaw ?? DEFAULT_EYE_CONFIG.maxYaw) * rotMul;
+    const MAX_PITCH = (config.maxPitch ?? DEFAULT_EYE_CONFIG.maxPitch) * rotMul;
 
     // twitch bsed on emotion
     let jitterYaw = 0;
@@ -326,7 +328,7 @@ export function updateRendering(deltaTime, behaviourState) {
     }
 
     // fake, placeholder behaviour until you get the actual model
-    const BASE_SCALE = config.baseScale ?? 1.0;
+    const BASE_SCALE = (config.baseScale ?? 1.0) * getModelScale();
 
     const safePupil = clamp(currentPupilScale, config.minPupilScale, config.maxPupilScale);
     const safeEyeOpen = clamp(currentEyeOpen, config.minEyeOpen, config.maxEyeOpen); 

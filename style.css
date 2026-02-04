@@ -12,6 +12,10 @@
     height: 100vh;
 }
 
+:root {
+    --webcamScale: 1;
+}
+
 #ui-root {
     display: none;
     position: absolute;
@@ -249,6 +253,9 @@
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
     z-index: 9998;
     background: #000;
+
+    transform: scale(var(--webcamScale));
+    transform-origin: bottom right;
 }
 
 #webcam-preview #webcamVideo {
