@@ -282,3 +282,10 @@ export function initSettingsUI() {
     applyAdminSettings();
     syncSettingsUI();
 }
+
+export function forceApplySettings(partial) {
+    currentSettings = { ...currentSettings, ...partial };
+    draftSettings = { ...currentSettings };
+    applyAdminSettings();
+    window.dispatchEvent(new CustomEvent(SETTINGS_CHANGED_EVENT, { detail: getCurrentSettings() }));
+}

@@ -3,7 +3,7 @@ import { initTracking, getTargets } from "./tracking/tracking.js";
 import { initBehaviour, updateBehaviour, setUiLock } from "./behaviour/behaviour.js";
 import { initUI, updateUI, hidePrompts, showDisclaimer, shownDisclaimer } from "./ui/ui.js";
 import { initEmotionDetector, updateEmotion, resetEmotionState } from "./tracking/emotion.js";
-import { initSettingsUI, getMode, getMode1ModelKey } from "./ui/settings.js";
+import { initSettingsUI, getMode, getMode1ModelKey, forceApplySettings } from "./ui/settings.js";
 
 let lastTime = 0;
 let accumulator = 0;
@@ -12,6 +12,12 @@ const FRAME_TIME = 1000 / FPS;
 
 let lastModeSeen = "mode1";
 let disclaimerActive = false;
+
+//settings
+const INACTIVITY_TIMEOUT_MS = 10000; // after this much inactivity, switch to idle mode
+const FACE_CONFIRM_MS = 1500;
+let lastInteractionMs = performance.now();
+let facePresentSinceMs = null;
 
 // webcam
 let previewCanvas = null;
@@ -63,6 +69,15 @@ function initRound(nowMs, OSM) {
     mode2State.nextSwitchMs = nowMs + MODE2_CYCLE_INTERVAL_MS;
     mode2State.last = mode2State.current;
 }
+
+function markInteraction() {
+    lastInteractionMs = performance.now();
+    facePresentSinceMs = null;
+}
+
+["pointerdown", "pointermove", "keydown", "wheel", "touchstart"].forEach(evt => {
+    window.addEventListener(evt, markInteraction, { passive: true });
+});
 
 function initWebcamOverlay() {
     previewVideoElement = document.getElementById("webcamVideo");
@@ -175,6 +190,27 @@ async function updateFixed(dt) {
     const faces = getTargets();
     const nowMs = performance.now();
     const mode = getMode();
+
+    const hasFace = Array.isArray(faces) && faces.length > 0;
+    if (hasFace) {
+        if (facePresentSinceMs === null) facePresentSinceMs = nowMs;
+        if (nowMs - facePresentSinceMs >= FACE_CONFIRM_MS) {
+            lastInteractionMs = nowMs;
+        }
+    } else {
+        facePresentSinceMs = null;
+    }
+
+    if (nowMs - lastInteractionMs >= INACTIVITY_TIMEOUT_MS) {
+        const mode = getMode();
+        if (mode !== "mode1") {
+            forceApplySettings({ mode: "mode1", model: "modelB" });
+        } else {
+            forceApplySettings({ model: "modelB" });
+        }
+        lastInteractionMs = nowMs;
+        facePresentSinceMs = null;
+    }
 
     const modeChanged = (mode !== lastModeSeen);
     if (modeChanged) {
