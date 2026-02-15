@@ -8,6 +8,8 @@ let currentSettings = {
     modelScale: 1.9,
     webcamScale: 2.3,
     rotationAggressiveness: 1.0,
+
+    background: "bg-none",
 };
 
 const launchDefaults = { ...currentSettings };
@@ -35,6 +37,19 @@ export function getMode() {
 export function getMode1ModelKey() {
     const model = currentSettings.model || "modelA";
     return MODE1_MODEL_TO_KEY[model] ?? "neutral";
+}
+
+const BACKGROUND_OPTIONS = {
+    "bg-none": { label: "None", cssValue: "none" },
+    "bg-1": { label: "Background 1", cssValue: "url('./assets/bg1.jpg')" },
+    "bg-2": { label: "Background 2", cssValue: "url('./assets/bg2.jpg')" },
+    "bg-3": { label: "Background 3", cssValue: "url('./assets/bg3.jpg')" },
+};
+
+function applyBackgroundSetting() {
+    const key = currentSettings.background;
+    const option = BACKGROUND_OPTIONS[key];
+    document.documentElement.style.setProperty("--bg-image", option?.cssValue ?? "none");
 }
 
 export function revertToDefaults() {
@@ -72,6 +87,7 @@ export function getRotationAggressiveness() {
 
 function applyAdminSettings() {
     document.documentElement.style.setProperty('--webcam-scale', String(getWebcamScale()));
+    applyBackgroundSetting();
 }
 
 function openSettings() {
@@ -109,6 +125,9 @@ function syncSettingsUI() {
     if (modelScaleValue) modelScaleValue.textContent = Number(draftSettings.modelScale ?? 1.0).toFixed(2);
     if (webcamScaleValue) webcamScaleValue.textContent = Number(draftSettings.webcamScale ?? 1.0).toFixed(2);
     if (rotationAggressivenessValue) rotationAggressivenessValue.textContent = Number(draftSettings.rotationAggressiveness ?? 1.0).toFixed(2);
+
+    const backgroundSelect = settingsOverlayElement.querySelector("#setting-background");
+    if (backgroundSelect) backgroundSelect.value = draftSettings.background || "bg-none";
 
     updateMode1Visibility();
 }
@@ -189,6 +208,19 @@ export function initSettingsUI() {
                 <div>Expression Detection</div>
             </label>
         </div>
+
+        <div class="settings-section">
+            <h3>Background</h3>
+            <div class="settings-option" style="justify-content: space-between;">
+                <div>Choose background</div>
+                <select id="setting-background" class="settings-btn">
+                    <option value="bg-none">Default</option>
+                    <option value="bg-1">Background 1</option>
+                    <option value="bg-2">Background 2</option>
+                    <option value="bg-3">Background 3</option>
+                </select>
+            </div>
+        </div>                
 
         <div class="settings-section">
             <h3>Admin settings</h3>
@@ -297,9 +329,19 @@ export function initSettingsUI() {
     const applyBtn = settingsOverlayElement.querySelector("#settings-apply");
     applyBtn.addEventListener("click", () => {
         currentSettings = { ...draftSettings };
+        draftSettings = { ...currentSettings };
         applyAdminSettings();
         closeSettings();
+        window.dispatchEvent(new CustomEvent(SETTINGS_CHANGED_EVENT, { detail: getCurrentSettings() }));
     });
+
+    const backgroundSelect = settingsOverlayElement.querySelector("#setting-background");
+    if (backgroundSelect) {
+        backgroundSelect.addEventListener("change", () => {
+            draftSettings.background = backgroundSelect.value;
+            syncSettingsUI();
+        });
+    }
 
     applyAdminSettings();
     syncSettingsUI();

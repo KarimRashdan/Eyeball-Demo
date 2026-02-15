@@ -83,13 +83,14 @@ function clamp(value, min, max) {
 export function initRendering(canvas) {
 
     // create renderer and attach it to canvas
-    renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+    renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+    renderer.setClearAlpha(0);
     renderer.setPixelRatio(1.0);
     renderer.setSize(window.innerWidth, window.innerHeight);
 
     // create scene
     scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x000000);
+    scene.background = null;
 
     // create camera
     camera = new THREE.PerspectiveCamera(

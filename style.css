@@ -27,6 +27,20 @@
     color: #f5f5f5;
 }
 
+:root {
+    --bg-image: none;
+}
+
+body {
+    margin: 0;
+    background-color: #000;
+    background-image: var(--bg-image);
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+}
+
 .ui-panel {
     background: rgba(10, 10, 10, 0.85);
     padding: 8px 10px;
@@ -290,7 +304,7 @@
     z-index: 10001;
     color: white;
     user-select: none;
-    display: incline-flex;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
     white-space: nowrap;
