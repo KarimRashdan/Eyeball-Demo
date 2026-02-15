@@ -203,11 +203,9 @@ async function updateFixed(dt) {
 
     if (nowMs - lastInteractionMs >= INACTIVITY_TIMEOUT_MS) {
         const mode = getMode();
-        if (mode !== "mode1") {
+        if (mode === "mode3") {
             forceApplySettings({ mode: "mode1", model: "modelB" });
-        } else {
-            forceApplySettings({ model: "modelB" });
-        }
+        } 
         lastInteractionMs = nowMs;
         facePresentSinceMs = null;
     }

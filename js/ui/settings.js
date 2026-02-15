@@ -171,7 +171,7 @@ export function initSettingsUI() {
                 </label>
                 <label class="settings-option">
                     <input type="radio" name="setting-model" value="modelD">
-                    <div>Demon Eye</div>
+                    <div>Eye of Sauron</div>
                 </label>
                 <label class="settings-option">
                     <input type="radio" name="setting-model" value="modelE">
@@ -268,7 +268,7 @@ export function initSettingsUI() {
             syncSettingsUI();
         });
     }
-    
+
     const modelScaleElement = settingsOverlayElement.querySelector("#setting-admin-model-scale");
     const webcamScaleElement = settingsOverlayElement.querySelector("#setting-admin-webcam-scale");
     const rotationAggressivenessElement = settingsOverlayElement.querySelector("#setting-admin-rotation-aggressiveness");
