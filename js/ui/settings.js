@@ -5,10 +5,12 @@ let currentSettings = {
     mode: "mode1",
     model: "modelA",
 
-    modelScale: 1.5,
+    modelScale: 1.9,
     webcamScale: 2.3,
     rotationAggressiveness: 1.0,
 };
+
+const launchDefaults = { ...currentSettings };
 
 let draftSettings = { ...currentSettings };
 
@@ -33,6 +35,17 @@ export function getMode() {
 export function getMode1ModelKey() {
     const model = currentSettings.model || "modelA";
     return MODE1_MODEL_TO_KEY[model] ?? "neutral";
+}
+
+export function revertToDefaults() {
+    Object.assign(currentSettings, launchDefaults);
+    forceApplySettings(currentSettings);
+    const rotationSlider = document.getElementById("rotation-slider");
+    const modelScaleSlider = document.getElementById("scale-slider");
+    const webcamScaleSlider = document.getElementById("webcam-scale-slider");
+    if (rotationSlider) rotationSlider.value = launchDefaults.rotationAggressiveness;
+    if (modelScaleSlider) modelScaleSlider.value = launchDefaults.modelScale;
+    if (webcamScaleSlider) webcamScaleSlider.value = launchDefaults.webcamScale;
 }
 
 export function onSettingsChanged(handler) {
@@ -183,9 +196,9 @@ export function initSettingsUI() {
             <div class="settings-slider">
                 <div class="settings-slider-row">
                     <div>Model scale</div>
-                    <div class="settings-slider-value" id="setting-admin-model-scale-value">1.50</div>
+                    <div class="settings-slider-value" id="setting-admin-model-scale-value">1.90</div>
                 </div>
-                <input id="setting-admin-model-scale" type="range" min="0.30" max="2.50" step="0.01" value="1.50" />
+                <input id="setting-admin-model-scale" type="range" min="0.30" max="2.50" step="0.01" value="1.90" />
             </div>
 
             <div class="settings-slider">
@@ -206,6 +219,7 @@ export function initSettingsUI() {
         </div>
 
         <div class="settings-actions">
+            <button class="settings-btn" id="settings-defaults" type="button">Revert to Defaults</button>
             <button class="settings-btn" id="settings-cancel" type="button">Cancel</button>
             <button class="settings-btn settings-btn-primary" id="settings-apply" type="button">Apply</button>
         </div>
@@ -247,6 +261,14 @@ export function initSettingsUI() {
         closeSettings();
     });
 
+    const resetBtn = settingsOverlayElement.querySelector("#settings-defaults");
+    if (resetBtn) {
+        resetBtn.addEventListener("click", () => {
+            revertToDefaults();
+            syncSettingsUI();
+        });
+    }
+    
     const modelScaleElement = settingsOverlayElement.querySelector("#setting-admin-model-scale");
     const webcamScaleElement = settingsOverlayElement.querySelector("#setting-admin-webcam-scale");
     const rotationAggressivenessElement = settingsOverlayElement.querySelector("#setting-admin-rotation-aggressiveness");
