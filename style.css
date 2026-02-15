@@ -278,27 +278,35 @@
     position: fixed;
     top: 14px;
     right: 14px;
-    width: 80px;
-    height: 80px;
-    font-size: 45px;
+    padding: 18px 32px;
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
     border-radius: 12px;
     background: rgba(0, 0, 0, 0.35);
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
     border: 1px solid rgba(255, 255, 255, 0.15);
     cursor: pointer;
     z-index: 10001;
-    display: grid;
-    place-items: center;
     color: white;
     user-select: none;
+    display: incline-flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+
+    transition: transform 0.18s ease, background 0.18s ease;
+    transform-origin: top right;
 }
 
 #settings-button:hover {
     background: rgba(0, 0, 0, 0.5);
+    transform: scale(1.08);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6);
 }
 
 #settings-button:active {
-    transform: translateY(1px);
+    transform: scale(1.04) translateY(1px);
 }
 
 #settings-overlay {

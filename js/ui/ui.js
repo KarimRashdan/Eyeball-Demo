@@ -61,6 +61,11 @@ let promptRight = null;
 let lastPromptText = "";
 let lastPhase = null;
 
+export function resetDisclaimer() {
+    disclaimerGen = false;
+    if (disclaimerOverlay) disclaimerOverlay.style.display = "none";
+}
+
 function setPromptText(text) {
     if (promptText && lastPromptText !== text) {
         promptText.textContent = text;

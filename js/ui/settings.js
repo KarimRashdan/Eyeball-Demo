@@ -119,7 +119,7 @@ export function initSettingsUI() {
     settingsButtonElement.id = "settings-button";
     settingsButtonElement.type = "button";
     settingsButtonElement.title = "Settings";
-    settingsButtonElement.innerHTML = "⚙️";
+    settingsButtonElement.innerHTML = "CLICK ME!";
 
     settingsButtonElement.addEventListener("click", () => {
         if (!settingsOverlayElement) return;
@@ -198,7 +198,7 @@ export function initSettingsUI() {
 
             <div class="settings-slider">
                 <div class="settings-slider-row">
-                    <div>Rotation aggressiveness</div>
+                    <div>Rotation sensitivity</div>
                     <div class="settings-slider-value" id="setting-admin-rotation-aggressiveness-value">1.00</div>
                 </div>
                 <input id="setting-admin-rotation-aggressiveness" type="range" min="0.25" max="2.50" step="0.01" value="1.00" />

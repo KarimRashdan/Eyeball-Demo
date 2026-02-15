@@ -1,7 +1,7 @@
 import { initRendering, updateRendering} from "./rendering/rendering.js";
 import { initTracking, getTargets } from "./tracking/tracking.js";
 import { initBehaviour, updateBehaviour, setUiLock } from "./behaviour/behaviour.js";
-import { initUI, updateUI, hidePrompts, showDisclaimer, shownDisclaimer } from "./ui/ui.js";
+import { initUI, updateUI, hidePrompts, showDisclaimer, shownDisclaimer, resetDisclaimer } from "./ui/ui.js";
 import { initEmotionDetector, updateEmotion, resetEmotionState } from "./tracking/emotion.js";
 import { initSettingsUI, getMode, getMode1ModelKey, forceApplySettings } from "./ui/settings.js";
 
@@ -214,6 +214,10 @@ async function updateFixed(dt) {
 
     const modeChanged = (mode !== lastModeSeen);
     if (modeChanged) {
+        if (lastModeSeen === "mode3" && mode !== "mode3") {
+            resetDisclaimer();
+        }
+
         resetEmotionState();
         cachedEmotionLabel = "neutral";
         lastEmotionUpdateMs = 0;
