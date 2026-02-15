@@ -292,8 +292,8 @@ body {
     position: fixed;
     top: 14px;
     right: 14px;
-    padding: 18px 32px;
-    font-size: 22px;
+    padding: 26px 48px;
+    font-size: 32px;
     font-weight: 600;
     letter-spacing: 0.5px;
     border-radius: 12px;
@@ -476,4 +476,9 @@ body {
 
 .disclaimer-button:hover {
     background: rgba(255, 255, 255, 0.14);
+}
+
+#setting-background option {
+    color: black;
+    background-color: white;
 }

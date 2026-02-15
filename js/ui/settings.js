@@ -44,6 +44,8 @@ const BACKGROUND_OPTIONS = {
     "bg-1": { label: "Background 1", cssValue: "url('./assets/bg1.jpg')" },
     "bg-2": { label: "Background 2", cssValue: "url('./assets/bg2.jpg')" },
     "bg-3": { label: "Background 3", cssValue: "url('./assets/bg3.jpg')" },
+    "bg-4": { label: "Background 4", cssValue: "url('./assets/bg4.jpg')" },
+    "bg-5": { label: "Background 5", cssValue: "url('./assets/bg5.jpg')" },
 };
 
 function applyBackgroundSetting() {
@@ -218,6 +220,8 @@ export function initSettingsUI() {
                     <option value="bg-1">Background 1</option>
                     <option value="bg-2">Background 2</option>
                     <option value="bg-3">Background 3</option>
+                    <option value="bg-4">Background 4</option>
+                    <option value="bg-5">Background 5</option>
                 </select>
             </div>
         </div>                
