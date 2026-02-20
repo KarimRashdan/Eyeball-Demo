@@ -217,11 +217,11 @@ export function initSettingsUI() {
                 <div>Choose background</div>
                 <select id="setting-background" class="settings-btn">
                     <option value="bg-none">Default</option>
-                    <option value="bg-1">Background 1</option>
-                    <option value="bg-2">Background 2</option>
-                    <option value="bg-3">Background 3</option>
-                    <option value="bg-4">Background 4</option>
-                    <option value="bg-5">Background 5</option>
+                    <option value="bg-1">Lecture Hall CB1.10</option>
+                    <option value="bg-2">Super Mario 64</option>
+                    <option value="bg-3">Iron Throne</option>
+                    <option value="bg-4">Silly</option>
+                    <option value="bg-5">Cheeky Nando's</option>
                 </select>
             </div>
         </div>                
@@ -234,7 +234,7 @@ export function initSettingsUI() {
                     <div>Model scale</div>
                     <div class="settings-slider-value" id="setting-admin-model-scale-value">1.90</div>
                 </div>
-                <input id="setting-admin-model-scale" type="range" min="0.30" max="2.50" step="0.01" value="1.90" />
+                <input id="setting-admin-model-scale" type="range" min="0.30" max="2.80" step="0.01" value="1.90" />
             </div>
 
             <div class="settings-slider">
